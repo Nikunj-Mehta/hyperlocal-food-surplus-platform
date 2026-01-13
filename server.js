@@ -7,6 +7,11 @@ const app = require('./app');
 mongoose.connect(process.env.MONGODB_URI || 'mongodb://localhost:27017/food-surplus_db')
   .then(() => {
     console.log('Connected to MongoDB');
+
+    // Load models
+    require('./models/user');
+    require('./models/food');
+    require('./models/request');
   })
   .catch((err) => {
     console.error('MongoDB connection error:', err);

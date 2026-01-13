@@ -1,5 +1,6 @@
 // Main application file
 const express = require('express');
+const foodRoutes = require('./routes/foods');
 const app = express();
 
 // Middleware for JSON parsing
@@ -24,5 +25,8 @@ app.use((req, res, next) => {
 app.get('/', (req, res) => {
   res.json({ message: 'Food Surplus API is running' });
 });
+
+// Food routes
+app.use('/foods', foodRoutes);
 
 module.exports = app;
