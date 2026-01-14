@@ -1,7 +1,7 @@
 // Server entry point
 require('dotenv').config();
 const mongoose = require('mongoose');
-const app = require('./app');
+const app = require('./app'); // Whenever app.js is required, it will be executed completely and there is no need to run any function to call it or run it.
 
 // MongoDB connection
 mongoose.connect(process.env.MONGODB_URI || 'mongodb://localhost:27017/food-surplus_db')

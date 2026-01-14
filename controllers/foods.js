@@ -44,16 +44,16 @@ const show = async (req, res) => {
 // Create new food
 const create = async (req, res) => {
     try {
-      const food = new Food(req.body);
+      const food = new Food(req.body); // Take everything from request.body then create a new food object.
   
       // TEMP: hardcoded test user (remove after auth)
       food.author = '6964c490e71c1def9e44aabd';
   
-      await food.save();
+      await food.save(); // Save the newly created food object to the database.
   
       res.status(201).json({
         success: true,
-        data: food,
+        data: food, // Send the newly created food object to the client.
       });
     } catch (error) {
       res.status(400).json({
@@ -70,8 +70,8 @@ const update = async (req, res) => {
       req.params.id,
       req.body,
       {
-        new: true,
-        runValidators: true,
+        new: true, // Only fields present in req.body are updated, Fields NOT present remain unchanged.
+        runValidators: true, // Run the validators on the fields that are being updated.
       }
     );
 
