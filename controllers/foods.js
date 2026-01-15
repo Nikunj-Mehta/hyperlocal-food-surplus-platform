@@ -43,46 +43,45 @@ const show = async (req, res) => {
 
 // Create new food
 const create = async (req, res) => {
-    try {
-      const food = new Food(req.body); // Take everything from request.body then create a new food object.
-  
-      // TEMP: hardcoded test user (remove after auth)
-      food.author = '6964c490e71c1def9e44aabd';
-  
-      await food.save(); // Save the newly created food object to the database.
-  
-      res.status(201).json({
-        success: true,
-        data: food, // Send the newly created food object to the client.
-      });
-    } catch (error) {
-      res.status(400).json({
-        success: false,
-        error: error.message,
-      });
-    }
-  };
+  try {
+    const food = new Food(req.body);
+
+    // Assign logged-in user as author
+    food.author = req.user._id;
+
+    await food.save();
+
+    res.status(201).json({
+      success: true,
+      data: food,
+    });
+  } catch (error) {
+    res.status(400).json({
+      success: false,
+      error: error.message,
+    });
+  }
+};
+
 
 // Update food by id
 const update = async (req, res) => {
   try {
-    const food = await Food.findByIdAndUpdate(
-      req.params.id,
-      req.body,
-      {
-        new: true, // Only fields present in req.body are updated, Fields NOT present remain unchanged.
-        runValidators: true, // Run the validators on the fields that are being updated.
-      }
-    );
+    const food = await Food.findById(req.params.id);
 
     if (!food) {
-      return res.status(404).json({
-        success: false,
-        error: 'Food not found',
-      });
+      return res.status(404).json({ error: 'Food not found' });
     }
 
-    res.status(200).json({
+    // Ownership check
+    if (food.author.toString() !== req.user._id.toString()) {
+      return res.status(403).json({ error: 'Not authorized' });
+    }
+
+    Object.assign(food, req.body);
+    await food.save();
+
+    res.json({
       success: true,
       data: food,
     });
@@ -97,7 +96,7 @@ const update = async (req, res) => {
 // Delete food by id
 const destroy = async (req, res) => {
   try {
-    const food = await Food.findByIdAndDelete(req.params.id);
+    const food = await Food.findById(req.params.id);
 
     if (!food) {
       return res.status(404).json({
@@ -106,7 +105,17 @@ const destroy = async (req, res) => {
       });
     }
 
-    res.status(200).json({
+    // Owner or admin can delete
+    if (food.author.toString() !== req.user._id.toString() && req.user.role !== 'admin') {
+      return res.status(403).json({
+        success: false,
+        error: 'Not authorized',
+      });
+    }
+
+    await food.deleteOne();
+
+    res.json({
       success: true,
       data: {},
     });

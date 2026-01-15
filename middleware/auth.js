@@ -7,17 +7,17 @@ const protect = async (req, res, next) => {
   // 1. Check Authorization header
   if (
     req.headers.authorization &&
-    req.headers.authorization.startsWith('Bearer')
+    req.headers.authorization.startsWith('Bearer')  // Checks:Header exists and Token format is correct. Expected format: Authorization: Bearer eyJhbGciOiJIUzI1NiIs...
   ) {
     try {
       // 2. Extract token
-      token = req.headers.authorization.split(' ')[1];
+      token = req.headers.authorization.split(' ')[1]; // Splits Bearer and token and stores token only.
 
       // 3. Verify token
       const decoded = jwt.verify(token, process.env.JWT_SECRET);
 
       // 4. Attach user to request (without password)
-      req.user = await User.findById(decoded.id).select('-password'); // For THIS request only, remember which user is making it.
+      req.user = await User.findById(decoded.id).select('-password'); // For THIS request only, remember which user is making it. This is the output we are returning to the user.
 
       next();
     } catch (error) {

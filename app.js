@@ -2,6 +2,7 @@
 const express = require('express');
 const foodRoutes = require('./routes/foods');
 const userRoutes = require('./routes/users');
+const requestRoutes = require('./routes/requests');
 const app = express();
 
 // Middleware for JSON parsing
@@ -32,5 +33,8 @@ app.use('/foods', foodRoutes);
 
 // User routes
 app.use('/users', userRoutes);
+
+// Request routes
+app.use('/requests', requestRoutes);
 
 module.exports = app;

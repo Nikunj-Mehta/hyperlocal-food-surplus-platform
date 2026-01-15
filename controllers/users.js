@@ -18,7 +18,7 @@ const register = async (req, res) => {
     // 2. Hash password
     const hashedPassword = await bcrypt.hash(password, 10);
 
-    // 3. Create user
+    // 3. Create user  User.create() is a mongoose method that creates a new user in the database and also saves it.
     const user = await User.create({
       name,
       email,
