@@ -11,6 +11,11 @@ const requestSchema = new mongoose.Schema({
     ref: 'User',
     required: true,
   },
+  requestedQuantity: {
+    type: Number,
+    required: true,
+    min: 1,
+  },
   status: {
     type: String,
     enum: ['pending', 'approved', 'rejected'],

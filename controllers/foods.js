@@ -3,7 +3,7 @@ const Food = require('../models/food');
 // Get all foods
 const index = async (req, res) => {
   try {
-    const foods = await Food.find().populate('author', 'name email');
+    const foods = await Food.find( {status: { $ne: 'picked' }} ).populate('author', 'name email');
     res.status(200).json({
       success: true,
       count: foods.length,
