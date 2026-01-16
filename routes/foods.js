@@ -2,12 +2,16 @@ const express = require('express');
 const { index, create, show, update, destroy } = require('../controllers/foods');
 const protect = require('../middleware/auth');
 const { createRequest } = require('../controllers/requests');
+const multer = require('multer');
+const { storage } = require('../cloudinary');
+const upload = multer({ storage });
+
 
 const router = express.Router();
 
 // /foods
 router.get('/', index); // public route
-router.post('/', protect, create); // protected route
+router.post('/', protect, upload.array('images'), create); // protected route // allows upload multiple images
 
 // /foods/:id
 router.get('/:id', show); // public route

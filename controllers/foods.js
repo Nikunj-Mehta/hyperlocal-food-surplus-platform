@@ -1,4 +1,5 @@
 const Food = require('../models/food');
+const { cloudinary } = require('../cloudinary');
 
 // Get all foods
 const index = async (req, res) => {
@@ -44,10 +45,23 @@ const show = async (req, res) => {
 // Create new food
 const create = async (req, res) => {
   try {
+    // Parse location from form-data
+    if (typeof req.body.location === 'string') {
+      req.body.location = JSON.parse(req.body.location);
+    }
+
     const food = new Food(req.body);
 
     // Assign logged-in user as author
     food.author = req.user._id;
+
+    // Save images of food listing if uploaded
+    if (req.files && req.files.length > 0) {
+      food.images = req.files.map(file => ({
+        url: file.path,
+        filename: file.filename,
+      }));
+    }    
 
     await food.save();
 
@@ -56,13 +70,12 @@ const create = async (req, res) => {
       data: food,
     });
   } catch (error) {
-    res.status(400).json({
+    res.status(500).json({
       success: false,
       error: error.message,
     });
   }
 };
-
 
 // Update food by id
 const update = async (req, res) => {
@@ -113,11 +126,19 @@ const destroy = async (req, res) => {
       });
     }
 
+    // Delete images from Cloudinary
+    if (food.images && food.images.length > 0) {
+      for (let img of food.images) {
+        await cloudinary.uploader.destroy(img.filename);
+      }
+    }
+
+    // Delete food from DB
     await food.deleteOne();
 
     res.json({
       success: true,
-      data: {},
+      message: "Food and images deleted successfully",
     });
   } catch (error) {
     res.status(500).json({
