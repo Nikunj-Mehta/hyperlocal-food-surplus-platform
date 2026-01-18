@@ -1,14 +1,11 @@
 const User = require('../models/user');
 const bcrypt = require('bcryptjs');
 const generateToken = require('../utils/generateToken');
-const Food = require('../models/food');
-const Request = require('../models/request');
-const { cloudinary } = require('../cloudinary');
 
 // REGISTER USER
 const register = async (req, res) => {
   try {
-    const { name, email, password } = req.body;
+    const { name, email, password, role } = req.body;
 
     // 1. Check if user already exists
     const userExists = await User.findOne({ email });
@@ -26,6 +23,7 @@ const register = async (req, res) => {
       name,
       email,
       password: hashedPassword,
+      role: role || 'donor', // default donor if not provided
     });
 
     // 4. Send response with JWT
@@ -80,53 +78,27 @@ const login = async (req, res) => {
     });
   }
 };
-  
-const User = require('../models/user');
-const Food = require('../models/food');
-const Request = require('../models/request');
-const { cloudinary } = require('../cloudinary');
 
-const deleteUser = async (req, res) => {
+
+const changeRole = async (req, res) => {
   try {
-    const user = await User.findById(req.params.id);
+    const { role } = req.body;
 
-    if (!user) {
-      return res.status(404).json({ error: 'User not found' });
+    if (!['donor', 'receiver'].includes(role)) {
+      return res.status(400).json({ message: 'Invalid role' });
     }
 
-    // Only admin or self
-    if (
-      req.user._id.toString() !== user._id.toString() &&
-      req.user.role !== 'admin'
-    ) {
-      return res.status(403).json({ error: 'Not authorized' });
-    }
+    req.user.role = role;
+    await req.user.save();
 
-    // Find foods created by user
-    const foods = await Food.find({ author: user._id });
-
-    for (let food of foods) {
-      // Delete images
-      for (let img of food.images) {
-        await cloudinary.uploader.destroy(img.filename);
-      }
-
-      // Delete related requests for the food listing uploaded by this user.
-      await Request.deleteMany({ food: food._id });
-
-      await food.deleteOne();
-    }
-
-    // Delete requests made by user
-    await Request.deleteMany({ requester: user._id });
-
-    // Delete user
-    await user.deleteOne();
-
-    res.json({ success: true, message: 'User and related data deleted' });
+    res.json({
+      success: true,
+      message: `Role updated to ${role}`,
+      role: req.user.role,
+    });
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    res.status(500).json({ message: error.message });
   }
 };
 
-module.exports = { register, login, deleteUser };
+module.exports = { register, login, changeRole };
