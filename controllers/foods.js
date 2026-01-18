@@ -1,5 +1,6 @@
 const Food = require('../models/food');
 const { cloudinary } = require('../cloudinary');
+const Request = require('../models/request');
 
 // Get all foods
 const index = async (req, res) => {
@@ -80,26 +81,56 @@ const create = async (req, res) => {
 // Update food by id
 const update = async (req, res) => {
   try {
+    // Parse location if sent as string (form-data)
+    if (typeof req.body.location === 'string') {
+      req.body.location = JSON.parse(req.body.location);
+    }
+
     const food = await Food.findById(req.params.id);
 
     if (!food) {
-      return res.status(404).json({ error: 'Food not found' });
+      return res.status(404).json({
+        success: false,
+        error: 'Food not found',
+      });
     }
 
-    // Ownership check
-    if (food.author.toString() !== req.user._id.toString()) {
-      return res.status(403).json({ error: 'Not authorized' });
+    // Only owner or admin
+    if (
+      food.author.toString() !== req.user._id.toString() &&
+      req.user.role !== 'admin'
+    ) {
+      return res.status(403).json({
+        success: false,
+        error: 'Not authorized',
+      });
     }
 
+    // Update text fields
     Object.assign(food, req.body);
+
+    // If new images are sent → replace all old images
+    if (req.files && req.files.length > 0) {
+      // Delete old images from Cloudinary
+      for (let img of food.images) {
+        await cloudinary.uploader.destroy(img.filename);
+      }
+
+      // Replace with new images
+      food.images = req.files.map(file => ({
+        url: file.path,
+        filename: file.filename,
+      }));
+    }
+
     await food.save();
 
-    res.json({
+    res.status(200).json({
       success: true,
       data: food,
     });
   } catch (error) {
-    res.status(400).json({
+    res.status(500).json({
       success: false,
       error: error.message,
     });
@@ -133,8 +164,11 @@ const destroy = async (req, res) => {
       }
     }
 
+    // Delete all requests related to this food
+    await Request.deleteMany({ food: food._id });
+
     // Delete food from DB
-    await food.deleteOne();
+    await food.deleteOne(); // Delete images → Delete requests → Delete food
 
     res.json({
       success: true,

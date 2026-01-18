@@ -15,7 +15,7 @@ router.post('/', protect, upload.array('images'), create); // protected route //
 
 // /foods/:id
 router.get('/:id', show); // public route
-router.put('/:id', protect, update); // protected route
+router.put('/:id', protect, upload.array('images'), update); // protected route
 router.delete('/:id', protect, destroy); // protected route
 
 // req.user is available in create/update/delete. Anonymous users cannot create or modify food.
