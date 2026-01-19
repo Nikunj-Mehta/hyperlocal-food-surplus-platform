@@ -2,6 +2,7 @@
 require('dotenv').config();
 const mongoose = require('mongoose');
 const app = require('./app'); // Whenever app.js is required, it will be executed completely and there is no need to run any function to call it or run it.
+const startFoodLifecycleJob = require('./utils/foodLifecycleJob');
 
 // MongoDB connection
 mongoose.connect(process.env.MONGODB_URI || 'mongodb://localhost:27017/food-surplus_db')
@@ -12,6 +13,9 @@ mongoose.connect(process.env.MONGODB_URI || 'mongodb://localhost:27017/food-surp
     require('./models/user');
     require('./models/food');
     require('./models/request');
+
+    // Start lifecycle automation ONLY after DB is ready
+    startFoodLifecycleJob(); // To make edible food as compost when they are 3 days older.
   })
   .catch((err) => {
     console.error('MongoDB connection error:', err);
