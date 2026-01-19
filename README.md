@@ -49,17 +49,20 @@ The project follows a clean **MVC (Model–View–Controller)** architecture ins
 
 ```
 food-surplus/
-├── models/          # Mongoose schemas
-├── controllers/     # Business logic
-├── routes/          # REST API routes
-├── middleware/      # Auth & validation middleware
-├── utils/           # Utility & error handling
-├── cloudinary/      # Cloudinary configuration
-├── seeds/           # Sample seed data
-├── config/          # Configuration files
-├── app.js           # Express app configuration
-├── server.js        # Server entry point
-└── .env             # Environment variables (ignored)
+├── Backend/
+│   ├── models/          # Mongoose schemas
+│   ├── controllers/     # Business logic
+│   ├── routes/          # REST API routes
+│   ├── middleware/      # Auth & validation middleware
+│   ├── utils/           # Utility & error handling
+│   ├── cloudinary/      # Cloudinary configuration
+│   ├── seeds/           # Sample seed data
+│   ├── config/          # Configuration files
+│   ├── app.js           # Express app configuration
+│   ├── server.js        # Server entry point
+│   └── .env             # Environment variables (ignored)
+└── Frontend/
+    └── ...              # Frontend source (React/Vite)
 ```
 
 ---
