@@ -1,0 +1,3 @@
+@tailwind base;        /* resets + base styles */
+@tailwind components; /* reusable components (later) */
+@tailwind utilities;  /* ALL utility classes like flex, text-xl */
