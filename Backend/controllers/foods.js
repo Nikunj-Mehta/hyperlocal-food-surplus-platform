@@ -182,10 +182,29 @@ const destroy = async (req, res) => {
   }
 };
 
+// Get foods created by logged-in user
+const myFoods = async (req, res) => {
+  try {
+    const foods = await Food.find({ author: req.user._id });
+
+    res.status(200).json({
+      success: true,
+      count: foods.length,
+      data: foods,
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      error: error.message,
+    });
+  }
+};
+
 module.exports = {
   index,
   show,
   create,
   update,
   destroy,
+  myFoods,
 };
