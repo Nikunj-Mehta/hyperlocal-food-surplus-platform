@@ -20,6 +20,11 @@ const createRequest = async (req, res) => {
       return res.status(403).json({ error: 'Only receivers can request food' });
     }
 
+     // Prevent requesting own food
+    if (food.author.toString() === req.user._id.toString()) {
+      return res.status(400).json({ error: 'You cannot request your own food listing' });
+    }
+
     if (!quantity || quantity <= 0) {
       return res.status(400).json({ error: 'Invalid quantity' });
     }

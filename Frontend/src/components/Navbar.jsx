@@ -48,6 +48,25 @@ const Navbar = () => {
               Switch Role
             </Button>
 
+            {user?.role === "donor" && (
+              <Button
+                variant="contained"
+                className="!bg-green-600 hover:!bg-green-700"
+                onClick={() => navigate("/foods/new")}
+              >
+                Add Food
+              </Button>
+            )}
+
+            {user?.role === "donor" && (
+              <Button
+                variant="outlined"
+                onClick={() => navigate("/foods/my")}
+              >
+                My Foods
+              </Button>
+            )}
+
             <Button
               variant="contained"
               color="error"

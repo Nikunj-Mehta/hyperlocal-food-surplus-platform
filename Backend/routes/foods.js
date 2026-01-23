@@ -13,6 +13,10 @@ const router = express.Router();
 router.get('/', index); // public route
 router.post('/', protect, upload.array('images'), create); // protected route // allows upload multiple images
 
+// To get foods owned by a user.
+// /foods/my
+router.get('/my', protect, myFoods);
+
 // /foods/:id
 router.get('/:id', show); // public route
 router.put('/:id', protect, upload.array('images'), update); // protected route
@@ -21,8 +25,5 @@ router.delete('/:id', protect, destroy); // protected route
 // req.user is available in create/update/delete. Anonymous users cannot create or modify food.
 // /foods/:foodId/request
 router.post('/:foodId/request', protect, createRequest);
-
-// To get foods owned by a user.
-router.get('/my', protect, myFoods);
 
 module.exports = router;

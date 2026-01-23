@@ -3,6 +3,11 @@ import { useAuth } from "./context/AuthContext";
 import Login from "./pages/Login";
 import Register from "./pages/Register";
 import Navbar from "./components/Navbar";
+import Foods from "./pages/Foods";
+import FoodDetails from "./pages/FoodDetails";
+import AddFood from "./pages/AddFood";
+import MyFoods from "./pages/MyFoods";
+import EditFood from "./pages/EditFood";
 
 function App() {
   const { user, loading } = useAuth();
@@ -24,15 +29,24 @@ function App() {
         <Route
           path="/"
           element={
-            user ? (
-              <div className="p-6 text-center text-green-600">
-                Welcome, {user.name} ({user.role})
-              </div>
+            user ? ( <Foods /> ) : ( <Navigate to="/login" /> )
+          }
+        />
+        <Route path="/foods/:id" element={<FoodDetails />} />
+        <Route
+          path="/foods/new"
+          element={
+            user?.role === "donor" ? (
+              <AddFood />
             ) : (
-              <Navigate to="/login" />
+              <Navigate to="/" />
             )
           }
         />
+        <Route path="/foods/my" element={<MyFoods />} />
+
+        <Route path="/foods/:id/edit" element={<EditFood />} />
+
       </Routes>
     </Router>
   );

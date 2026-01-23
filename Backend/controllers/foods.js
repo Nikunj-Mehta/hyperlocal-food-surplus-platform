@@ -5,7 +5,8 @@ const Request = require('../models/request');
 // Get all foods
 const index = async (req, res) => {
   try {
-    const foods = await Food.find( {status: { $ne: 'picked' }} ).populate('author', 'name email');
+    const foods = await Food.find({ foodType: 'edible', status: { $ne: 'picked' }}).populate('author', 'name email');
+
     res.status(200).json({
       success: true,
       count: foods.length,
@@ -81,46 +82,79 @@ const create = async (req, res) => {
 // Update food by id
 const update = async (req, res) => {
   try {
-    // Parse location if sent as string (form-data)
-    if (typeof req.body.location === 'string') {
-      req.body.location = JSON.parse(req.body.location);
-    }
-
     const food = await Food.findById(req.params.id);
 
     if (!food) {
       return res.status(404).json({
         success: false,
-        error: 'Food not found',
+        error: "Food not found",
       });
     }
 
     // Only owner or admin
     if (
       food.author.toString() !== req.user._id.toString() &&
-      req.user.role !== 'admin'
+      req.user.role !== "admin"
     ) {
       return res.status(403).json({
         success: false,
-        error: 'Not authorized',
+        error: "Not authorized",
       });
     }
 
-    // Update text fields
-    Object.assign(food, req.body);
+    // -----------------------------
+    // 1️⃣ Update basic fields
+    // -----------------------------
+    food.title = req.body.title;
+    food.quantity = req.body.quantity;
+    food.quantityUnit = req.body.quantityUnit;
+    food.foodType = req.body.foodType;
+    food.address = req.body.address;
 
-    // If new images are sent → replace all old images
+    food.location = {
+      type: "Point",
+      coordinates: [
+        Number(req.body.longitude),
+        Number(req.body.latitude),
+      ],
+    };
+
+    // -----------------------------
+    // 2️⃣ Handle image sync
+    // -----------------------------
+
+    // Remaining images sent from frontend
+    let remainingImages = req.body.existingImages || [];
+
+    // Handle single value case
+    if (typeof remainingImages === "string") {
+      remainingImages = [remainingImages];
+    }
+
+    // Delete images removed on frontend
+    const imagesToDelete = food.images.filter(
+      (img) => !remainingImages.includes(img.filename)
+    );
+
+    for (let img of imagesToDelete) {
+      await cloudinary.uploader.destroy(img.filename);
+    }
+
+    // Keep only remaining images
+    food.images = food.images.filter((img) =>
+      remainingImages.includes(img.filename)
+    );
+
+    // -----------------------------
+    // 3️⃣ Add new uploaded images
+    // -----------------------------
     if (req.files && req.files.length > 0) {
-      // Delete old images from Cloudinary
-      for (let img of food.images) {
-        await cloudinary.uploader.destroy(img.filename);
-      }
-
-      // Replace with new images
-      food.images = req.files.map(file => ({
+      const newImages = req.files.map((file) => ({
         url: file.path,
         filename: file.filename,
       }));
+
+      food.images.push(...newImages);
     }
 
     await food.save();
@@ -130,6 +164,7 @@ const update = async (req, res) => {
       data: food,
     });
   } catch (error) {
+    console.error("UPDATE FOOD ERROR:", error);
     res.status(500).json({
       success: false,
       error: error.message,
@@ -156,6 +191,14 @@ const destroy = async (req, res) => {
         error: 'Not authorized',
       });
     }
+
+    if (food.status !== "available") {
+      return res.status(400).json({
+        success: false,
+        error: "Only available food listings can be deleted",
+      });
+    }
+
 
     // Delete images from Cloudinary
     if (food.images && food.images.length > 0) {
