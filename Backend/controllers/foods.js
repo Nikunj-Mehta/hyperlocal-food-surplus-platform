@@ -243,6 +243,32 @@ const myFoods = async (req, res) => {
   }
 };
 
+const getFoodWithRequests = async (req, res) => {
+  try {
+    const food = await Food.findById(req.params.foodId).populate("author", "name email");
+
+    if (!food) {
+      return res.status(404).json({ error: "Food not found" });
+    }
+
+    // Only owner can see requests on this food
+    if (food.author._id.toString() !== req.user._id.toString()) {
+      return res.status(403).json({ error: "Not authorized" });
+    }
+
+    const requests = await Request.find({ food: food._id })
+      .populate("requester", "name email");
+
+    res.json({
+      success: true,
+      food,
+      requests,
+    });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+};
+
 module.exports = {
   index,
   show,
@@ -250,4 +276,5 @@ module.exports = {
   update,
   destroy,
   myFoods,
+  getFoodWithRequests
 };

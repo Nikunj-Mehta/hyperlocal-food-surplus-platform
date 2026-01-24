@@ -18,7 +18,16 @@ const FoodDetails = () => {
   const [lat, setLat] = useState("");
   const [lng, setLng] = useState("");
 
+  const [requests, setRequests] = useState([]);
 
+  useEffect(() => {
+    if (user?.role === "donor") {
+      api
+        .get(`/foods/${id}/requests`)
+        .then((res) => setRequests(res.data.requests))
+        .catch(() => {});
+    }
+  }, [id, user]);  
 
   useEffect(() => {
     const fetchFood = async () => {
@@ -114,6 +123,72 @@ const FoodDetails = () => {
           )}
         </div>
       </div>
+
+      {/* Donor-only: Requests on this food */}
+      {user?.role === "donor" && requests.length > 0 && (
+        <div className="max-w-5xl mx-auto px-6 pb-6">
+          <h2 className="text-xl font-semibold mb-4">
+            Requests on this food
+          </h2>
+
+          <div className="space-y-4">
+            {requests.map((req) => (
+              <div
+                key={req._id}
+                className="border rounded-lg p-4 bg-gray-50"
+              >
+                <p className="text-sm">
+                  <strong>Requested Quantity:</strong>{" "}
+                  {req.requestedQuantity}
+                </p>
+
+                <p className="text-sm">
+                  <strong>Requested By:</strong>{" "}
+                  {req.requester.name} ({req.requester.email})
+                </p>
+
+                {req.requesterLocation?.coordinates?.length === 2 && (
+                  <p className="text-sm">
+                    <strong>Location:</strong>{" "}
+                    {req.requesterLocation.coordinates[1]},{" "}
+                    {req.requesterLocation.coordinates[0]}
+                  </p>
+                )}
+
+                <p className="text-sm mt-1">
+                  <strong>Status:</strong>{" "}
+                  {req.status.toUpperCase()}
+                </p>
+
+                {req.status === "pending" && (
+                  <div className="mt-3 flex gap-3">
+                    <button
+                      className="px-3 py-1 bg-green-600 text-white rounded hover:bg-green-700 text-sm"
+                      onClick={() =>
+                        api.patch(`/requests/${req._id}/approve`)
+                          .then(() => window.location.reload())
+                      }
+                    >
+                      Approve
+                    </button>
+
+                    <button
+                      className="px-3 py-1 border border-red-500 text-red-500 rounded hover:bg-red-50 text-sm"
+                      onClick={() =>
+                        api.patch(`/requests/${req._id}/reject`)
+                          .then(() => window.location.reload())
+                      }
+                    >
+                      Reject
+                    </button>
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
   
       {/* Request Modal */}
       {openRequestModal && (
@@ -195,6 +270,7 @@ const FoodDetails = () => {
           </div>
         </div>
       )}
+      
     </>
   );  
 };

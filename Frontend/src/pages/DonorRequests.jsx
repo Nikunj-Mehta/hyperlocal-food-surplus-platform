@@ -1,10 +1,13 @@
 import { useEffect, useState } from "react";
 import api from "../api/axios";
 import { Button } from "@mui/material";
+import { useNavigate } from "react-router-dom";
 
 const DonorRequests = () => {
   const [requests, setRequests] = useState([]);
   const [loading, setLoading] = useState(true);
+
+  const navigate = useNavigate();
 
   useEffect(() => {
     const fetchRequests = async () => {
@@ -17,11 +20,21 @@ const DonorRequests = () => {
         setLoading(false);
       }
     };
-
+    
     fetchRequests();
   }, []);
 
   if (loading) return <p className="p-6">Loading...</p>;
+
+  const handleApprove = async (id) => {
+    await api.put(`/requests/${id}/approve`);
+    window.location.reload();
+  };
+  
+  const handleReject = async (id) => {
+    await api.put(`/requests/${id}/reject`);
+    window.location.reload();
+  };
 
   return (
     <div className="max-w-6xl mx-auto p-6">
@@ -37,7 +50,7 @@ const DonorRequests = () => {
                 className="border rounded-lg p-4 bg-white shadow"
             >
                 {/* FOOD INFO */}
-                <div className="flex gap-4 items-center mb-4">
+                <div className="flex gap-4 items-center mb-4 cursor-pointer" onClick={() => navigate(`/foods/${item.food._id}`)}>
                 {item.food.images?.length > 0 && (
                     <img
                     src={item.food.images[0].url}
@@ -92,15 +105,17 @@ const DonorRequests = () => {
                     {req.status === "pending" && (
                         <div className="mt-3 flex gap-3">
                         <button
-                            className="px-3 py-1 bg-green-600 text-white rounded hover:bg-green-700 text-sm"
+                          onClick={() => handleApprove(req._id)}
+                          className="px-3 py-1 bg-green-600 text-white rounded hover:bg-green-700 text-sm"
                         >
-                            Approve
+                          Approve
                         </button>
 
                         <button
-                            className="px-3 py-1 border border-red-500 text-red-500 rounded hover:bg-red-50 text-sm"
+                          onClick={() => handleReject(req._id)}
+                          className="px-3 py-1 border border-red-500 text-red-500 rounded hover:bg-red-50 text-sm"
                         >
-                            Reject
+                          Reject
                         </button>
                         </div>
                     )}
