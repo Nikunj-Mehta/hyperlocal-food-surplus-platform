@@ -75,6 +75,82 @@ const createRequest = async (req, res) => {
   }
 };
 
+// VIEW MY REQUESTS (receiver)
+const myRequests = async (req, res) => {
+    try {
+      const requests = await Request.find({
+        requester: req.user._id,
+      }).populate('food');
+  
+      res.json({
+        success: true,
+        count: requests.length,
+        data: requests,
+      });
+    } catch (error) {
+      res.status(500).json({ error: error.message });
+    }
+  };  
+
+// View Requests made on food I own
+const getReceivedRequests = async (req, res) => {
+  try {
+    // Only donors should access this
+    if (req.user.role !== "donor") {
+      return res.status(403).json({
+        error: "Only donors can view received requests",
+      });
+    }
+
+    const requests = await Request.find()
+      .populate({
+        path: "food",
+        match: { author: req.user._id },
+        select: "title quantity quantityUnit images location status",
+      })
+      .populate({
+        path: "requester",
+        select: "name email",
+      });
+
+    // Remove requests where food doesn't belong to this donor
+    const validRequests = requests.filter((req) => req.food);
+
+    // Group requests by food
+    const grouped = {};
+
+    for (let reqItem of validRequests) {
+      const foodId = reqItem.food._id.toString();
+
+      if (!grouped[foodId]) {
+        grouped[foodId] = {
+          food: reqItem.food,
+          requests: [],
+        };
+      }
+
+      grouped[foodId].requests.push({
+        _id: reqItem._id,
+        requestedQuantity: reqItem.requestedQuantity,
+        status: reqItem.status,
+        requester: reqItem.requester,
+        requesterLocation: reqItem.requesterLocation,
+        createdAt: reqItem.createdAt,
+      });
+    }
+
+    res.status(200).json({
+      success: true,
+      data: Object.values(grouped),
+    });
+  } catch (error) {
+    res.status(500).json({
+      error: error.message,
+    });
+  }
+};
+
+
 // APPROVE REQUEST (donor)
 const approveRequest = async (req, res) => {
   try {
@@ -142,22 +218,5 @@ const rejectRequest = async (req, res) => {
   }
 };  
 
-// VIEW MY REQUESTS (receiver)
-const myRequests = async (req, res) => {
-    try {
-      const requests = await Request.find({
-        requester: req.user._id,
-      }).populate('food');
-  
-      res.json({
-        success: true,
-        count: requests.length,
-        data: requests,
-      });
-    } catch (error) {
-      res.status(500).json({ error: error.message });
-    }
-  };  
-
-  module.exports = { createRequest, approveRequest, rejectRequest, myRequests };
+  module.exports = { createRequest, myRequests, getReceivedRequests, approveRequest, rejectRequest };
   

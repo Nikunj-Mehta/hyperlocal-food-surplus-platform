@@ -8,6 +8,8 @@ import FoodDetails from "./pages/FoodDetails";
 import AddFood from "./pages/AddFood";
 import MyFoods from "./pages/MyFoods";
 import EditFood from "./pages/EditFood";
+import MyRequests from "./pages/MyRequests";
+import DonorRequests from "./pages/DonorRequests";
 
 function App() {
   const { user, loading } = useAuth();
@@ -46,6 +48,12 @@ function App() {
         <Route path="/foods/my" element={<MyFoods />} />
 
         <Route path="/foods/:id/edit" element={<EditFood />} />
+
+        <Route path="/requests/my" element={<MyRequests />} />
+
+        <Route path="/dashboard/requests" element={ <DonorRequests /> }
+        />
+
 
       </Routes>
     </Router>

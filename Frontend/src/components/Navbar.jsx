@@ -12,6 +12,8 @@ const Navbar = () => {
       const newRole = user.role === "donor" ? "receiver" : "donor";
       const res = await api.patch("/users/change-role", { role: newRole });
       setUser((prev) => ({ ...prev, role: res.data.role }));
+      // Redirect to home after role switch
+      navigate("/");
     } catch (error) {
       alert("Failed to switch role");
     }
@@ -48,6 +50,15 @@ const Navbar = () => {
               Switch Role
             </Button>
 
+            {user?.role === "receiver" && (
+              <Button
+                variant="outlined"
+                onClick={() => navigate("/requests/my")}
+              >
+                My Requests
+              </Button>
+            )}
+
             {user?.role === "donor" && (
               <Button
                 variant="contained"
@@ -64,6 +75,15 @@ const Navbar = () => {
                 onClick={() => navigate("/foods/my")}
               >
                 My Foods
+              </Button>
+            )}
+
+            {user?.role === "donor" && (
+              <Button
+                variant="outlined"
+                onClick={() => navigate("/dashboard/requests")}
+              >
+                Requests
               </Button>
             )}
 
