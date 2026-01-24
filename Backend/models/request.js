@@ -16,6 +16,17 @@ const requestSchema = new mongoose.Schema({
     required: true,
     min: 1,
   },
+  requesterLocation: {
+    type: {
+      type: String,
+      enum: ["Point"],
+      default: "Point",
+    },
+    coordinates: {
+      type: [Number], // [lng, lat]
+      required: true,
+    },
+  },
   status: {
     type: String,
     enum: ['pending', 'approved', 'rejected'],

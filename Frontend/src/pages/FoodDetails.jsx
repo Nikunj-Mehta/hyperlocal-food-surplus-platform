@@ -15,6 +15,9 @@ const FoodDetails = () => {
   const [openRequestModal, setOpenRequestModal] = useState(false);
   const [requestQty, setRequestQty] = useState(1);
   const [submitting, setSubmitting] = useState(false);
+  const [lat, setLat] = useState("");
+  const [lng, setLng] = useState("");
+
 
 
   useEffect(() => {
@@ -112,7 +115,7 @@ const FoodDetails = () => {
         </div>
       </div>
   
-      {/* ✅ Request Modal */}
+      {/* Request Modal */}
       {openRequestModal && (
         <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
           <div className="bg-white rounded-lg p-6 w-full max-w-sm">
@@ -132,6 +135,22 @@ const FoodDetails = () => {
               onChange={(e) => setRequestQty(e.target.value)}
               className="w-full border rounded p-2 mb-4"
             />
+
+            <input
+              type="number"
+              placeholder="Latitude"
+              value={lat}
+              onChange={(e) => setLat(e.target.value)}
+              className="w-full border rounded p-2 mb-2"
+            />
+
+            <input
+              type="number"
+              placeholder="Longitude"
+              value={lng}
+              onChange={(e) => setLng(e.target.value)}
+              className="w-full border rounded p-2 mb-4"
+            />
   
             <div className="flex justify-end gap-3">
               <button
@@ -146,8 +165,16 @@ const FoodDetails = () => {
                 onClick={async () => {
                   try {
                     setSubmitting(true);
+                    if (!lat || !lng) {
+                      alert("Please enter both latitude and longitude");
+                      setSubmitting(false);
+                      return;
+                    }                    
                     await api.post(`/foods/${food._id}/request`, {
                       quantity: requestQty,
+                      location: {
+                        coordinates: [Number(lng), Number(lat)],
+                      },
                     });
                     alert("Request sent successfully");
                     setOpenRequestModal(false);

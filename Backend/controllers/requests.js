@@ -4,7 +4,7 @@ const Food = require('../models/food');
 // CREATE REQUEST (receiver)
 const createRequest = async (req, res) => {
   try {
-    const { quantity } = req.body;
+    const { quantity, location } = req.body;
 
     const food = await Food.findById(req.params.foodId);
 
@@ -35,6 +35,17 @@ const createRequest = async (req, res) => {
       });
     }
 
+    // Validate location
+    if (
+      !location ||
+      !location.coordinates ||
+      location.coordinates.length !== 2
+    ) {
+      return res.status(400).json({
+        error: "Requester location is required",
+      });
+    }
+
     const existingRequest = await Request.findOne({
       food: food._id,
       requester: req.user._id,
@@ -49,6 +60,10 @@ const createRequest = async (req, res) => {
       food: food._id,
       requester: req.user._id,
       requestedQuantity: quantity,
+      requesterLocation: {
+        type: "Point",
+        coordinates: location.coordinates,
+      },
     });
 
     res.status(201).json({
