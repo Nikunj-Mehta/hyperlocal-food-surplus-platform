@@ -22,7 +22,7 @@ const FoodDetails = () => {
 
   const [hasRequested, setHasRequested] = useState(false); // To disable the request button when user has already sent request
 
-  // Checks if user has already made the request then disable the button
+  // Checks if user has already made the request then disable the request button
   useEffect(() => {
     if (user?.role === "receiver") {
       api.get("/requests/my").then((res) => {
