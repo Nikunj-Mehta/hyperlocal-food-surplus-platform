@@ -18,7 +18,22 @@ const FoodDetails = () => {
   const [lat, setLat] = useState("");
   const [lng, setLng] = useState("");
 
-  const [requests, setRequests] = useState([]);
+  const [requests, setRequests] = useState([]); // To get requests received on my food listing
+
+  const [hasRequested, setHasRequested] = useState(false); // To disable the request button when user has already sent request
+
+  // Checks if user has already made the request then disable the button
+  useEffect(() => {
+    if (user?.role === "receiver") {
+      api.get("/requests/my").then((res) => {
+        const alreadyRequested = res.data.data.some(
+          (req) => req.food._id === id
+        );
+        setHasRequested(alreadyRequested);
+      });
+    }
+  }, [id, user]);
+  
 
   useEffect(() => {
     if (user?.role === "donor") {
@@ -101,17 +116,25 @@ const FoodDetails = () => {
   
         {/* Actions */}
         <div className="mt-6 flex gap-3">
-          {user?.role === "receiver" &&
-            food.status === "available" &&
-            !isOwner && (
-              <Button
-                variant="contained"
-                className="!bg-green-600 hover:!bg-green-700"
-                onClick={() => setOpenRequestModal(true)}
-              >
-                Request Food
-              </Button>
-            )}
+        {user?.role === "receiver" &&
+          food.status === "available" &&
+          !isOwner && (
+            <Button
+              variant="contained"
+              disabled={hasRequested}
+              className={`${
+                hasRequested
+                  ? "!bg-gray-400 cursor-not-allowed"
+                  : "!bg-green-600 hover:!bg-green-700"
+              }`}
+              onClick={() => {
+                if (!hasRequested) setOpenRequestModal(true);
+              }}
+            >
+              {hasRequested ? "Request Sent" : "Request Food"}
+            </Button>
+        )}
+
   
           {isOwner && (
             <Button
@@ -251,6 +274,7 @@ const FoodDetails = () => {
                         coordinates: [Number(lng), Number(lat)],
                       },
                     });
+                    setHasRequested(true);
                     alert("Request sent successfully");
                     setOpenRequestModal(false);
                   } catch (err) {
