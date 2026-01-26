@@ -32,6 +32,14 @@ const requestSchema = new mongoose.Schema({
     enum: ['pending', 'approved', 'rejected'],
     default: 'pending',
   },
+  donorSeen: {
+  type: Boolean,
+  default: false
+  },
+  receiverSeen: {
+    type: Boolean,
+    default: true
+  },
   createdAt: {
     type: Date,
     default: Date.now,

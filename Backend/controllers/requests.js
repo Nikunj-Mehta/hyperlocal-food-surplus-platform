@@ -64,6 +64,8 @@ const createRequest = async (req, res) => {
         type: "Point",
         coordinates: location.coordinates,
       },
+      donorSeen: false,     //  notify donor
+      receiverSeen: true    // receiver already knows
     });
 
     res.status(201).json({
@@ -76,9 +78,17 @@ const createRequest = async (req, res) => {
 };
 
 // VIEW MY REQUESTS (receiver)
-// VIEW MY REQUESTS (receiver)
 const myRequests = async (req, res) => {
   try {
+
+    await Request.updateMany(
+      {
+        requester: req.user._id,
+        receiverSeen: false
+      },
+      { receiverSeen: true }
+    );
+    
     const requests = await Request.find({ requester: req.user._id,}).populate({
       path: "food",
       populate: {
@@ -116,6 +126,12 @@ const getReceivedRequests = async (req, res) => {
         error: "Only donors can view received requests",
       });
     }
+
+    // We must clear notifications when user opens dashboard.
+    await Request.updateMany(
+      { donorSeen: false },
+      { donorSeen: true }
+    );
 
     const requests = await Request.find()
       .populate({
@@ -206,6 +222,9 @@ const approveRequest = async (req, res) => {
     }
 
     request.status = 'approved';
+    request.receiverSeen = false; // notify receiver
+    request.donorSeen = true;     // donor already acted
+
 
     await request.food.save();
     await request.save();
@@ -233,13 +252,55 @@ const rejectRequest = async (req, res) => {
     }
 
     request.status = 'rejected';
+    request.receiverSeen = false; // notify receiver
+    request.donorSeen = true; // donor already acted
     await request.save();
 
     res.json({ success: true, data: request });
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
-};  
+};
 
-  module.exports = { createRequest, myRequests, getReceivedRequests, approveRequest, rejectRequest };
+// 🔔 Donor notification count
+const donorNotificationCount = async (req, res) => {
+  try {
+    if (req.user.role !== "donor") {
+      return res.status(403).json({ error: "Only donors allowed" });
+    }
+
+    const count = await Request.countDocuments({
+      status: "pending",
+      donorSeen: false
+    }).populate({
+      path: "food",
+      match: { author: req.user._id }
+    });
+
+    res.json({ count });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+};
+
+// Receiver notification count
+const receiverNotificationCount = async (req, res) => {
+  try {
+    if (req.user.role !== "receiver") {
+      return res.status(403).json({ error: "Only receivers allowed" });
+    }
+
+    const count = await Request.countDocuments({
+      requester: req.user._id,
+      receiverSeen: false,
+      status: { $in: ["approved", "rejected"] }
+    });
+
+    res.json({ count });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+};
+
+module.exports = { createRequest, myRequests, getReceivedRequests, approveRequest, rejectRequest, donorNotificationCount, receiverNotificationCount };
   

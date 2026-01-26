@@ -1,11 +1,35 @@
+import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { Button } from "@mui/material";
 import { useAuth } from "../context/AuthContext";
 import api from "../api/axios";
+import { getDonorNotificationCount, getReceiverNotificationCount } from "../api/notifications";
 
 const Navbar = () => {
   const { user, logout, setUser } = useAuth();
   const navigate = useNavigate();
+
+  const [notifCount, setNotifCount] = useState(0);
+
+  useEffect(() => {
+    const fetchNotifications = async () => {
+      if (!user) return;
+  
+      try {
+        if (user.role === "donor") {
+          const count = await getDonorNotificationCount();
+          setNotifCount(count);
+        } else {
+          const count = await getReceiverNotificationCount();
+          setNotifCount(count);
+        }
+      } catch (err) {
+        console.error("Notification fetch failed");
+      }
+    };
+  
+    fetchNotifications();
+  }, [user]);  
 
   const handleRoleSwitch = async () => {
     try {
@@ -51,12 +75,15 @@ const Navbar = () => {
             </Button>
 
             {user?.role === "receiver" && (
-              <Button
-                variant="outlined"
-                onClick={() => navigate("/requests/my")}
-              >
-                My Requests
-              </Button>
+              <Link to="/requests/my" className="relative" onClick={() => setNotifCount(0)}>
+              <Button variant="outlined">My Requests</Button>
+            
+              {notifCount > 0 && (
+                <span className="absolute -top-1 -right-1 bg-red-600 text-white text-xs w-5 h-5 rounded-full flex items-center justify-center">
+                  {notifCount}
+                </span>
+              )}
+            </Link>            
             )}
 
             {user?.role === "donor" && (
@@ -79,12 +106,15 @@ const Navbar = () => {
             )}
 
             {user?.role === "donor" && (
-              <Button
-                variant="outlined"
-                onClick={() => navigate("/dashboard/requests")}
-              >
-                Requests
-              </Button>
+              <Link to="/dashboard/requests" className="relative" onClick={() => setNotifCount(0)}>
+              <Button variant="outlined">Requests</Button>
+            
+              {notifCount > 0 && (
+                <span className="absolute -top-1 -right-1 bg-red-600 text-white text-xs w-5 h-5 rounded-full flex items-center justify-center">
+                  {notifCount}
+                </span>
+              )}
+            </Link>
             )}
 
             <Button
