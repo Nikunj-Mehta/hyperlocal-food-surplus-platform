@@ -121,7 +121,7 @@ const getReceivedRequests = async (req, res) => {
       .populate({
         path: "food",
         match: { author: req.user._id },
-        select: "title quantity quantityUnit images location status",
+        select: "title quantity quantityUnit images location status createdAt",
       })
       .populate({
         path: "requester",

@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import api from "../api/axios";
 import { Button } from "@mui/material";
 import { useNavigate } from "react-router-dom";
+import { timeAgo } from "../utils/time";
 
 const DonorRequests = () => {
   const [requests, setRequests] = useState([]);
@@ -60,15 +61,10 @@ const DonorRequests = () => {
                 )}
 
                 <div>
-                    <h2 className="text-xl font-semibold">
-                    {item.food.title}
-                    </h2>
-                    <p className="text-sm text-gray-600">
-                    Available: {item.food.quantity} {item.food.quantityUnit}
-                    </p>
-                    <p className="text-sm text-gray-600">
-                    Status: {item.food.status.toUpperCase()}
-                    </p>
+                    <h2 className="text-xl font-semibold">{item.food.title}</h2>
+                    <p className="text-sm text-gray-600">Available: {item.food.quantity} {item.food.quantityUnit}</p>
+                    <p className="text-sm text-gray-600">Status: {item.food.status.toUpperCase()}</p>
+                    <p className="text-xs text-gray-500"> Added {timeAgo(item.food.createdAt)} </p>
                 </div>
                 </div>
 

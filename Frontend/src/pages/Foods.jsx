@@ -3,6 +3,7 @@ import api from "../api/axios";
 import { Button } from "@mui/material";
 import { useAuth } from "../context/AuthContext";
 import { useNavigate } from "react-router-dom";
+import { timeAgo } from "../utils/time";
 
 const Foods = () => {
   const { user } = useAuth();
@@ -72,6 +73,9 @@ const Foods = () => {
               </p>
 
               <p className="text-sm text-gray-500">{food.address}</p>
+
+              <p className="text-xs text-gray-500 mt-1"> Added {timeAgo(food.createdAt)} </p>
+
             </div>
           ))}
         </div>

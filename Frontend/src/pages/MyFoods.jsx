@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import api from "../api/axios";
 import { useNavigate } from "react-router-dom";
+import { timeAgo } from "../utils/time";
 
 const MyFoods = () => {
   const [foods, setFoods] = useState([]);
@@ -84,6 +85,8 @@ const MyFoods = () => {
             >
               {food.status.toUpperCase()}
             </span>
+
+            <p className="text-xs text-gray-500"> Added {timeAgo(food.createdAt)} </p>
           
             {/* Actions */}
             <div className="flex gap-4 mt-2">

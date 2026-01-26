@@ -3,6 +3,7 @@ import { useParams, useNavigate } from "react-router-dom";
 import { Button } from "@mui/material";
 import api from "../api/axios";
 import { useAuth } from "../context/AuthContext";
+import { formatDate, timeAgo } from "../utils/time";
 
 const FoodDetails = () => {
   const { id } = useParams();
@@ -70,6 +71,9 @@ const FoodDetails = () => {
       <div className="max-w-5xl mx-auto p-6">
         {/* Title */}
         <h1 className="text-3xl font-bold mb-2">{food.title}</h1>
+
+        <p className="text-sm text-gray-500 mb-2"> Added on {formatDate(food.createdAt)} • {timeAgo(food.createdAt)} </p>
+
   
         {/* Status */}
         <span
