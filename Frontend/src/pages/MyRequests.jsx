@@ -81,6 +81,13 @@ const MyRequests = () => {
                 >
                   {req.status.toUpperCase()}
                 </span>
+                {/* Donor contact (only after approval) */}
+                {req.status === "approved" && req.food?.author?.phone && (
+                  <div className="mt-3 text-sm text-green-700">
+                    <p className="font-medium"> Contact <i>{req.food.author.name}</i> to receive the food </p>
+                    <p className="mt-1"> 📞 {req.food.author.phone}</p>
+                  </div>
+                )}
               </div>
             </div>
           ))}

@@ -76,26 +76,41 @@ const createRequest = async (req, res) => {
 };
 
 // VIEW MY REQUESTS (receiver)
+// VIEW MY REQUESTS (receiver)
 const myRequests = async (req, res) => {
-    try {
-      const requests = await Request.find({
-        requester: req.user._id,
-      }).populate('food');
-  
-      res.json({
-        success: true,
-        count: requests.length,
-        data: requests,
-      });
-    } catch (error) {
-      res.status(500).json({ error: error.message });
-    }
-  };  
+  try {
+    const requests = await Request.find({ requester: req.user._id,}).populate({
+      path: "food",
+      populate: {
+        path: "author",
+        select: "name phone",
+      },
+    });
+
+    // Hide donor phone unless approved
+    const sanitizedRequests = requests.map((reqItem) => {
+      const obj = reqItem.toObject();
+
+      if (obj.status !== "approved" && obj.food?.author) {
+        delete obj.food.author.phone;
+      }
+
+      return obj;
+    });
+
+    res.json({
+      success: true,
+      count: sanitizedRequests.length,
+      data: sanitizedRequests,
+    });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+};
 
 // View Requests made on food I own
 const getReceivedRequests = async (req, res) => {
   try {
-    // Only donors should access this
     if (req.user.role !== "donor") {
       return res.status(403).json({
         error: "Only donors can view received requests",
@@ -110,13 +125,11 @@ const getReceivedRequests = async (req, res) => {
       })
       .populate({
         path: "requester",
-        select: "name email",
+        select: "name email phone",
       });
 
-    // Remove requests where food doesn't belong to this donor
-    const validRequests = requests.filter((req) => req.food);
+    const validRequests = requests.filter((r) => r.food);
 
-    // Group requests by food
     const grouped = {};
 
     for (let reqItem of validRequests) {
@@ -129,14 +142,25 @@ const getReceivedRequests = async (req, res) => {
         };
       }
 
-      grouped[foodId].requests.push({
+      const requestObj = {
         _id: reqItem._id,
         requestedQuantity: reqItem.requestedQuantity,
         status: reqItem.status,
-        requester: reqItem.requester,
+        requester: {
+          _id: reqItem.requester._id,
+          email: reqItem.requester.email,
+          name: reqItem.requester.name,
+        },
         requesterLocation: reqItem.requesterLocation,
         createdAt: reqItem.createdAt,
-      });
+      };
+
+      // expose phone ONLY if approved
+      if (reqItem.status === "approved") {
+        requestObj.requester.phone = reqItem.requester.phone;
+      }
+
+      grouped[foodId].requests.push(requestObj);
     }
 
     res.status(200).json({
@@ -149,7 +173,6 @@ const getReceivedRequests = async (req, res) => {
     });
   }
 };
-
 
 // APPROVE REQUEST (donor)
 const approveRequest = async (req, res) => {

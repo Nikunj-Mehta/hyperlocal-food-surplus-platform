@@ -8,6 +8,7 @@ const Register = () => {
   const [formData, setFormData] = useState({
     name: "",
     email: "",
+    phone: "",
     password: "",
     role: "donor",
   });
@@ -60,6 +61,16 @@ const Register = () => {
           fullWidth
           required
           value={formData.email}
+          onChange={handleChange}
+        />
+
+        <TextField
+          label="Phone Number"
+          name="phone"
+          type="tel"
+          fullWidth
+          required
+          value={formData.phone}
           onChange={handleChange}
         />
 

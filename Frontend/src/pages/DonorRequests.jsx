@@ -101,6 +101,14 @@ const DonorRequests = () => {
                         {req.status.toUpperCase()}
                     </p>
 
+                    {/* Receiver contact (only after approval) */}
+                    {req.status === "approved" && req.requester.phone && (
+                      <div className="mt-2 text-sm text-green-700">
+                        <p className="font-medium"> Contact <i>{req.requester.name}</i> to donate the food </p>
+                        <p className="mt-1"> 📞 {req.requester.phone} </p>
+                      </div>
+                    )}
+
                     {/* ACTION BUTTONS */}
                     {req.status === "pending" && (
                         <div className="mt-3 flex gap-3">
