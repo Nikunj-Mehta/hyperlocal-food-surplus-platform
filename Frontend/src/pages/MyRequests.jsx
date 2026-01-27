@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import api from "../api/axios";
+import { calculateDistance } from "../utils/distance";
 
 const MyRequests = () => {
   const navigate = useNavigate();
@@ -36,7 +37,21 @@ const MyRequests = () => {
         <p className="text-gray-500">You haven’t made any requests yet.</p>
       ) : (
         <div className="space-y-4">
-          {requests.map((req) => (
+          {requests.map((req) => {
+            let distanceKm = null;
+
+            if (
+              req.requesterLocation?.coordinates?.length === 2 &&
+              req.food?.location?.coordinates?.length === 2
+            ) {
+              distanceKm = calculateDistance(
+                req.requesterLocation.coordinates[1],
+                req.requesterLocation.coordinates[0],
+                req.food.location.coordinates[1],
+                req.food.location.coordinates[0]
+              );
+            }
+            return (
             <div
               key={req._id}
               className="bg-white border rounded-lg p-4 shadow-sm flex gap-4"
@@ -69,6 +84,15 @@ const MyRequests = () => {
                   Address: {req.food?.address}
                 </p>
 
+                {distanceKm && (
+                  <p className="text-sm text-gray-600 mt-1">
+                    Distance from food:{" "}
+                    <span className="font-medium">
+                      {distanceKm.toFixed(2)} km
+                    </span>
+                  </p>
+                )}
+
                 {/* Status badge */}
                 <span
                   className={`inline-block mt-2 px-2 py-1 text-xs rounded ${
@@ -90,7 +114,8 @@ const MyRequests = () => {
                 )}
               </div>
             </div>
-          ))}
+          );
+          })}
         </div>
       )}
     </div>

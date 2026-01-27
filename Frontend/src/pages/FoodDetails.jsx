@@ -4,6 +4,8 @@ import { Button } from "@mui/material";
 import api from "../api/axios";
 import { useAuth } from "../context/AuthContext";
 import { formatDate, timeAgo } from "../utils/time";
+import MapView from "../components/MapView";
+import { calculateDistance } from "../utils/distance";
 
 const FoodDetails = () => {
   const { id } = useParams();
@@ -66,6 +68,17 @@ const FoodDetails = () => {
 
   const isOwner = user && food.author?._id === user._id;
 
+  let distanceKm = null;
+
+  if (lat && lng && food?.location?.coordinates?.length === 2 ) {
+    distanceKm = calculateDistance(
+      Number(lat),
+      Number(lng),
+      food.location.coordinates[1],
+      food.location.coordinates[0]
+    );
+  }
+
   return (
     <>
       <div className="max-w-5xl mx-auto p-6">
@@ -117,7 +130,14 @@ const FoodDetails = () => {
             <strong>Donor:</strong> {food.author?.name}
           </p>
         </div>
-  
+
+        {/* Map – Food + Requesters (Donor only) */}
+        <MapView
+          lat={food.location.coordinates[1]}
+          lng={food.location.coordinates[0]}
+          label={food.title}
+        />
+
         {/* Actions */}
         <div className="mt-6 flex gap-3">
         {user?.role === "receiver" &&
@@ -159,59 +179,81 @@ const FoodDetails = () => {
           </h2>
 
           <div className="space-y-4">
-            {requests.map((req) => (
-              <div
-                key={req._id}
-                className="border rounded-lg p-4 bg-gray-50"
-              >
-                <p className="text-sm">
-                  <strong>Requested Quantity:</strong>{" "}
-                  {req.requestedQuantity}
-                </p>
+          {requests.map((req) => {
+              const foodCoords = food?.location?.coordinates;
+              const reqCoords = req.requesterLocation?.coordinates;
 
-                <p className="text-sm">
-                  <strong>Requested By:</strong>{" "}
-                  {req.requester.name} ({req.requester.email})
-                </p>
+              const distanceKm =
+                foodCoords?.length === 2 && reqCoords?.length === 2
+                  ? calculateDistance(
+                      foodCoords[1],
+                      foodCoords[0],
+                      reqCoords[1],
+                      reqCoords[0]
+                    ).toFixed(2)
+                  : null;
 
-                {req.requesterLocation?.coordinates?.length === 2 && (
+              return (
+                <div
+                  key={req._id}
+                  className="border rounded-lg p-4 bg-gray-50"
+                >
                   <p className="text-sm">
-                    <strong>Location:</strong>{" "}
-                    {req.requesterLocation.coordinates[1]},{" "}
-                    {req.requesterLocation.coordinates[0]}
+                    <strong>Requested Quantity:</strong>{" "}
+                    {req.requestedQuantity}
                   </p>
-                )}
 
-                <p className="text-sm mt-1">
-                  <strong>Status:</strong>{" "}
-                  {req.status.toUpperCase()}
-                </p>
+                  <p className="text-sm">
+                    <strong>Requested By:</strong>{" "}
+                    {req.requester.name} ({req.requester.email})
+                  </p>
 
-                {req.status === "pending" && (
-                  <div className="mt-3 flex gap-3">
-                    <button
-                      className="px-3 py-1 bg-green-600 text-white rounded hover:bg-green-700 text-sm"
-                      onClick={() =>
-                        api.patch(`/requests/${req._id}/approve`)
-                          .then(() => window.location.reload())
-                      }
-                    >
-                      Approve
-                    </button>
+                  {reqCoords?.length === 2 && (
+                    <p className="text-sm">
+                      <strong>Location:</strong>{" "}
+                      {reqCoords[1]}, {reqCoords[0]}
+                    </p>
+                  )}
 
-                    <button
-                      className="px-3 py-1 border border-red-500 text-red-500 rounded hover:bg-red-50 text-sm"
-                      onClick={() =>
-                        api.patch(`/requests/${req._id}/reject`)
-                          .then(() => window.location.reload())
-                      }
-                    >
-                      Reject
-                    </button>
-                  </div>
-                )}
-              </div>
-            ))}
+                  {distanceKm && (
+                    <p className="text-sm text-gray-700">
+                      <strong>Distance:</strong> {distanceKm} km away
+                    </p>
+                  )}
+
+                  <p className="text-sm mt-1">
+                    <strong>Status:</strong>{" "}
+                    {req.status.toUpperCase()}
+                  </p>
+
+                  {req.status === "pending" && (
+                    <div className="mt-3 flex gap-3">
+                      <button
+                        className="px-3 py-1 bg-green-600 text-white rounded hover:bg-green-700 text-sm"
+                        onClick={() =>
+                          api
+                            .patch(`/requests/${req._id}/approve`)
+                            .then(() => window.location.reload())
+                        }
+                      >
+                        Approve
+                      </button>
+
+                      <button
+                        className="px-3 py-1 border border-red-500 text-red-500 rounded hover:bg-red-50 text-sm"
+                        onClick={() =>
+                          api
+                            .patch(`/requests/${req._id}/reject`)
+                            .then(() => window.location.reload())
+                        }
+                      >
+                        Reject
+                      </button>
+                    </div>
+                  )}
+                </div>
+              );
+            })}
           </div>
         </div>
       )}
@@ -253,6 +295,16 @@ const FoodDetails = () => {
               onChange={(e) => setLng(e.target.value)}
               className="w-full border rounded p-2 mb-4"
             />
+
+            {distanceKm && (
+              <p className="text-sm text-gray-600 mb-3">
+                📍This food is approximately{" "}
+                <span className="font-semibold">
+                  {distanceKm.toFixed(2)} km
+                </span>{" "}
+                away from you
+              </p>
+            )}
   
             <div className="flex justify-end gap-3">
               <button

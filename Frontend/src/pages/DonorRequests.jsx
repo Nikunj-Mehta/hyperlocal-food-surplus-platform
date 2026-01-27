@@ -3,6 +3,7 @@ import api from "../api/axios";
 import { Button } from "@mui/material";
 import { useNavigate } from "react-router-dom";
 import { timeAgo } from "../utils/time";
+import { calculateDistance } from "../utils/distance";
 
 const DonorRequests = () => {
   const [requests, setRequests] = useState([]);
@@ -70,62 +71,84 @@ const DonorRequests = () => {
 
                 {/* REQUESTS ON THIS FOOD */}
                 <div className="space-y-3">
-                {item.requests.map((req) => (
-                    <div
-                    key={req._id}
-                    className="border rounded-md p-3 bg-gray-50"
-                    >
-                    <p className="text-sm">
-                        <strong>Requested Qty:</strong> {req.requestedQuantity}
-                    </p>
+                  {item.requests.map((req) => {
+                    const foodCoords = item.food?.location?.coordinates;
+                    const reqCoords = req.requesterLocation?.coordinates;
 
-                    <p className="text-sm">
-                        <strong>Requested By:</strong>{" "}
-                        {req.requester.name} ({req.requester.email})
-                    </p>
+                    const distanceKm =
+                      foodCoords?.length === 2 && reqCoords?.length === 2
+                        ? calculateDistance(
+                            foodCoords[1],
+                            foodCoords[0],
+                            reqCoords[1],
+                            reqCoords[0]
+                          ).toFixed(2)
+                        : null;
 
-                    {req.requesterLocation?.coordinates?.length === 2 && (
+                    return (
+                      <div
+                        key={req._id}
+                        className="border rounded-md p-3 bg-gray-50"
+                      >
                         <p className="text-sm">
-                        <strong>Location:</strong>{" "}
-                        {req.requesterLocation.coordinates[1]},{" "}
-                        {req.requesterLocation.coordinates[0]}
+                          <strong>Requested Qty:</strong> {req.requestedQuantity}
                         </p>
-                    )}
 
-                    <p className="text-sm mt-1">
-                        <strong>Status:</strong>{" "}
-                        {req.status.toUpperCase()}
-                    </p>
+                        <p className="text-sm">
+                          <strong>Requested By:</strong>{" "}
+                          {req.requester.name} ({req.requester.email})
+                        </p>
 
-                    {/* Receiver contact (only after approval) */}
-                    {req.status === "approved" && req.requester.phone && (
-                      <div className="mt-2 text-sm text-green-700">
-                        <p className="font-medium"> Contact <i>{req.requester.name}</i> to donate the food </p>
-                        <p className="mt-1"> 📞 {req.requester.phone} </p>
+                        {reqCoords?.length === 2 && (
+                          <p className="text-sm">
+                            <strong>Location:</strong>{" "}
+                            {reqCoords[1]}, {reqCoords[0]}
+                          </p>
+                        )}
+
+                        {distanceKm && (
+                          <p className="text-sm text-gray-700">
+                            <strong>Distance:</strong> {distanceKm} km away
+                          </p>
+                        )}
+
+                        <p className="text-sm mt-1">
+                          <strong>Status:</strong> {req.status.toUpperCase()}
+                        </p>
+
+                        {/* Receiver contact (only after approval) */}
+                        {req.status === "approved" && req.requester.phone && (
+                          <div className="mt-2 text-sm text-green-700">
+                            <p className="font-medium">
+                              Contact <i>{req.requester.name}</i> to donate the food
+                            </p>
+                            <p className="mt-1">📞 {req.requester.phone}</p>
+                          </div>
+                        )}
+
+                        {/* ACTION BUTTONS */}
+                        {req.status === "pending" && (
+                          <div className="mt-3 flex gap-3">
+                            <button
+                              onClick={() => handleApprove(req._id)}
+                              className="px-3 py-1 bg-green-600 text-white rounded hover:bg-green-700 text-sm"
+                            >
+                              Approve
+                            </button>
+
+                            <button
+                              onClick={() => handleReject(req._id)}
+                              className="px-3 py-1 border border-red-500 text-red-500 rounded hover:bg-red-50 text-sm"
+                            >
+                              Reject
+                            </button>
+                          </div>
+                        )}
                       </div>
-                    )}
-
-                    {/* ACTION BUTTONS */}
-                    {req.status === "pending" && (
-                        <div className="mt-3 flex gap-3">
-                        <button
-                          onClick={() => handleApprove(req._id)}
-                          className="px-3 py-1 bg-green-600 text-white rounded hover:bg-green-700 text-sm"
-                        >
-                          Approve
-                        </button>
-
-                        <button
-                          onClick={() => handleReject(req._id)}
-                          className="px-3 py-1 border border-red-500 text-red-500 rounded hover:bg-red-50 text-sm"
-                        >
-                          Reject
-                        </button>
-                        </div>
-                    )}
-                    </div>
-                ))}
+                    );
+                  })}
                 </div>
+
             </div>
             ))}
         </div>
