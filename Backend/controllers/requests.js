@@ -193,47 +193,81 @@ const getReceivedRequests = async (req, res) => {
 // APPROVE REQUEST (donor)
 const approveRequest = async (req, res) => {
   try {
-    const request = await Request.findById(req.params.requestId).populate('food');
+    const request = await Request.findById(req.params.requestId).populate("food");
 
     if (!request) {
-      return res.status(404).json({ error: 'Request not found' });
+      return res.status(404).json({ error: "Request not found" });
     }
 
-    if (request.food.author.toString() !== req.user._id.toString()) {
-      return res.status(403).json({ error: 'Not authorized' });
+    const food = request.food;
+
+    if (!food) {
+      return res.status(404).json({ error: "Food not found" });
     }
 
-    if (request.status !== 'pending') {
-      return res.status(400).json({ error: 'Request already processed' });
+    // Only food owner can approve
+    if (food.author.toString() !== req.user._id.toString()) {
+      return res.status(403).json({ error: "Not authorized" });
     }
 
-    // Reduce food quantity
-    request.food.quantity -= request.requestedQuantity;
-
-    if (request.food.quantity < 0) {
-      return res.status(400).json({ error: 'Insufficient food quantity' });
+    if (request.status !== "pending") {
+      return res.status(400).json({ error: "Request already processed" });
     }
 
-    // Update food status
-    if (request.food.quantity === 0) {
-      request.food.status = 'picked';
+    // Food already exhausted
+    if (food.quantity === 0 || food.status === "picked") {
+      return res.status(400).json({
+        error: "Food is no longer available",
+      });
+    }
+
+    // Requested more than available
+    if (request.requestedQuantity > food.quantity) {
+      // Auto-reject THIS request
+      request.status = "rejected";
+      request.receiverSeen = false;
+      request.donorSeen = true;
+      await request.save();
+
+      return res.status(400).json({
+        error: "Requested quantity exceeds available food",
+      });
+    }
+
+    // APPROVE REQUEST
+    food.quantity -= request.requestedQuantity;
+    request.status = "approved";
+    request.receiverSeen = false;
+    request.donorSeen = true;
+
+    // If food exhausted → mark picked & auto-reject others
+    if (food.quantity === 0) {
+      food.status = "picked";
+
+      await Request.updateMany(
+        {
+          food: food._id,
+          status: "pending",
+        },
+        {
+          status: "rejected",
+          receiverSeen: false,
+        }
+      );
     } else {
-      request.food.status = 'available';
+      food.status = "available";
     }
 
-    request.status = 'approved';
-    request.receiverSeen = false; // notify receiver
-    request.donorSeen = true;     // donor already acted
-
-
-    await request.food.save();
+    await food.save();
     await request.save();
 
     res.json({
       success: true,
+      message: "Request approved successfully",
       data: request,
     });
   } catch (error) {
+    console.error("APPROVE REQUEST ERROR:", error);
     res.status(500).json({ error: error.message });
   }
 };

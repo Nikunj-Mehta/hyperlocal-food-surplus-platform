@@ -1,28 +1,36 @@
-const cron = require('node-cron');
-const Food = require('../models/food');
+const cron = require("node-cron");
+const Food = require("../models/food");
 
 const startFoodLifecycleJob = () => {
-  // Runs every day at midnight
-  cron.schedule('0 0 * * *', async () => {
+  console.log("[Food Lifecycle Job] Initialized");
+
+  // Run every day at midnight
+  cron.schedule("0 0 * * *", async () => {
     try {
+      console.log("[Food Lifecycle Job] Running...");
+
       const threeDaysAgo = new Date();
       threeDaysAgo.setDate(threeDaysAgo.getDate() - 3);
 
       const result = await Food.updateMany(
         {
-          foodType: 'edible',
+          foodType: "edible",
+          status: "available",
           createdAt: { $lte: threeDaysAgo },
         },
         {
-          foodType: 'compost',
+          $set: {
+            foodType: "compost",
+            status: "picked", // optional but logical
+          },
         }
       );
 
       console.log(
-        `[Food Lifecycle Job] Updated ${result.modifiedCount} food items to compost`
+        `[Food Lifecycle Job] Converted ${result.modifiedCount} food items to compost`
       );
     } catch (error) {
-      console.error('[Food Lifecycle Job] Error:', error.message);
+      console.error("[Food Lifecycle Job] Error:", error);
     }
   });
 };

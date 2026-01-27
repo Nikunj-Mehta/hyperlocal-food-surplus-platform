@@ -231,8 +231,7 @@ const FoodDetails = () => {
                       <button
                         className="px-3 py-1 bg-green-600 text-white rounded hover:bg-green-700 text-sm"
                         onClick={() =>
-                          api
-                            .patch(`/requests/${req._id}/approve`)
+                          api.put(`/requests/${req._id}/approve`)
                             .then(() => window.location.reload())
                         }
                       >
@@ -242,8 +241,7 @@ const FoodDetails = () => {
                       <button
                         className="px-3 py-1 border border-red-500 text-red-500 rounded hover:bg-red-50 text-sm"
                         onClick={() =>
-                          api
-                            .patch(`/requests/${req._id}/reject`)
+                          api.put(`/requests/${req._id}/reject`)
                             .then(() => window.location.reload())
                         }
                       >
