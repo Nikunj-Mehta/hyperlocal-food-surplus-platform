@@ -76,6 +76,11 @@ const Foods = () => {
 
               <p className="text-xs text-gray-500 mt-1"> Added {timeAgo(food.createdAt)} </p>
 
+              {food.author?.rating?.count > 0 && (
+                <p className="text-xs text-gray-500 mt-1">
+                  ⭐ {food.author.rating.average} · {food.author.rating.count} reviews
+                </p>
+              )}
             </div>
           ))}
         </div>

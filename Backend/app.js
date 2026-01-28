@@ -1,6 +1,7 @@
 // Main application file
 const express = require('express');
 const foodRoutes = require('./routes/foods');
+const reviewRoutes = require('./routes/reviews');
 const userRoutes = require('./routes/users');
 const requestRoutes = require('./routes/requests');
 const app = express();
@@ -36,5 +37,7 @@ app.use('/users', userRoutes);
 
 // Request routes
 app.use('/requests', requestRoutes);
+
+app.use('/reviews', reviewRoutes);
 
 module.exports = app;

@@ -116,6 +116,32 @@ const DonorRequests = () => {
                           <strong>Status:</strong> {req.status.toUpperCase()}
                         </p>
 
+                        {/* Rating received (only if reviewed) */}
+                        {req.reviewed && req.review?.rating && (
+                          <div className="mt-2 flex items-center gap-2 text-sm">
+                            <span className="text-gray-600">Receiver rated you:</span>
+
+                            <div className="flex">
+                              {[1, 2, 3, 4, 5].map((star) => (
+                                <span
+                                  key={star}
+                                  className={
+                                    star <= req.review.rating
+                                      ? "text-yellow-400 text-lg"
+                                      : "text-gray-300 text-lg"
+                                  }
+                                >
+                                  ★
+                                </span>
+                              ))}
+                            </div>
+
+                            <span className="text-gray-500">
+                              ({req.review.rating}/5)
+                            </span>
+                          </div>
+                        )}
+
                         {/* Receiver contact (only after approval) */}
                         {req.status === "approved" && req.requester.phone && (
                           <div className="mt-2 text-sm text-green-700">

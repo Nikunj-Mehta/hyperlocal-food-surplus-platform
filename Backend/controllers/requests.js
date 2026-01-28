@@ -1,5 +1,6 @@
 const Request = require('../models/request');
 const Food = require('../models/food');
+const Review = require("../models/review");
 
 // CREATE REQUEST (receiver)
 const createRequest = async (req, res) => {
@@ -89,13 +90,18 @@ const myRequests = async (req, res) => {
       { receiverSeen: true }
     );
     
-    const requests = await Request.find({ requester: req.user._id,}).populate({
+    const requests = await Request.find({ requester: req.user._id }).populate({
       path: "food",
       populate: {
         path: "author",
-        select: "name phone",
+        select: "name phone rating",
       },
+    })
+    .populate({
+      path: "review",
+      select: "rating",
     });
+
 
     // Hide donor phone unless approved
     const sanitizedRequests = requests.map((reqItem) => {
@@ -142,6 +148,9 @@ const getReceivedRequests = async (req, res) => {
       .populate({
         path: "requester",
         select: "name email phone",
+      }).populate({
+        path: "review",
+        select: "rating",
       });
 
     const validRequests = requests.filter((r) => r.food);
@@ -162,6 +171,7 @@ const getReceivedRequests = async (req, res) => {
         _id: reqItem._id,
         requestedQuantity: reqItem.requestedQuantity,
         status: reqItem.status,
+        reviewed: reqItem.reviewed,
         requester: {
           _id: reqItem.requester._id,
           email: reqItem.requester.email,
@@ -174,6 +184,20 @@ const getReceivedRequests = async (req, res) => {
       // expose phone ONLY if approved
       if (reqItem.status === "approved") {
         requestObj.requester.phone = reqItem.requester.phone;
+      }
+
+      // FETCH REVIEW IF EXISTS
+      if (reqItem.reviewed) {
+        const review = await Review.findOne(
+          { request: reqItem._id },
+          "rating"
+        );
+
+        if (review) {
+          requestObj.review = {
+            rating: review.rating,
+          };
+        }
       }
 
       grouped[foodId].requests.push(requestObj);
@@ -257,6 +281,8 @@ const approveRequest = async (req, res) => {
     } else {
       food.status = "available";
     }
+
+    request.reviewed = false;
 
     await food.save();
     await request.save();

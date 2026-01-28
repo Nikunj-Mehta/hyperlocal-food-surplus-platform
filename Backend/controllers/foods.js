@@ -5,7 +5,10 @@ const Request = require('../models/request');
 // Get all foods
 const index = async (req, res) => {
   try {
-    const foods = await Food.find({ foodType: 'edible', status: { $ne: 'picked' }}).populate('author', 'name email');
+    const foods = await Food.find({
+      foodType: "edible",
+      status: { $ne: "picked" },
+    }).populate("author", "name email rating");
 
     res.status(200).json({
       success: true,
@@ -23,12 +26,15 @@ const index = async (req, res) => {
 // Get single food by id
 const show = async (req, res) => {
   try {
-    const food = await Food.findById(req.params.id).populate('author', 'name email');
-    
+    const food = await Food.findById(req.params.id).populate(
+      "author",
+      "name email rating"
+    );
+
     if (!food) {
       return res.status(404).json({
         success: false,
-        error: 'Food not found',
+        error: "Food not found",
       });
     }
 
@@ -102,9 +108,7 @@ const update = async (req, res) => {
       });
     }
 
-    // -----------------------------
-    // 1️⃣ Update basic fields
-    // -----------------------------
+    // Update basic fields
     food.title = req.body.title;
     food.quantity = req.body.quantity;
     food.quantityUnit = req.body.quantityUnit;
@@ -119,10 +123,7 @@ const update = async (req, res) => {
       ],
     };
 
-    // -----------------------------
-    // 2️⃣ Handle image sync
-    // -----------------------------
-
+    // Handle image sync
     // Remaining images sent from frontend
     let remainingImages = req.body.existingImages || [];
 
@@ -145,9 +146,7 @@ const update = async (req, res) => {
       remainingImages.includes(img.filename)
     );
 
-    // -----------------------------
-    // 3️⃣ Add new uploaded images
-    // -----------------------------
+    // Add new uploaded images
     if (req.files && req.files.length > 0) {
       const newImages = req.files.map((file) => ({
         url: file.path,

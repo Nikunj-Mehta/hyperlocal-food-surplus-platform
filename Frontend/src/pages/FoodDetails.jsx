@@ -86,7 +86,6 @@ const FoodDetails = () => {
         <h1 className="text-3xl font-bold mb-2">{food.title}</h1>
 
         <p className="text-sm text-gray-500 mb-2"> Added on {formatDate(food.createdAt)} • {timeAgo(food.createdAt)} </p>
-
   
         {/* Status */}
         <span
@@ -129,6 +128,17 @@ const FoodDetails = () => {
           <p>
             <strong>Donor:</strong> {food.author?.name}
           </p>
+
+          {food.author?.rating?.count > 0 && (
+            <div className="flex items-center gap-1 text-sm text-gray-600 mt-1">
+              <span className="text-yellow-500">
+                ⭐ {food.author.rating.average}
+              </span>
+              <span>
+                ({food.author.rating.count} reviews)
+              </span>
+            </div>
+          )}
         </div>
 
         {/* Map – Food + Requesters (Donor only) */}

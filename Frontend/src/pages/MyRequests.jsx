@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import api from "../api/axios";
 import { calculateDistance } from "../utils/distance";
+import ReviewStars from "../components/ReviewStars";
 
 const MyRequests = () => {
   const navigate = useNavigate();
@@ -26,6 +27,22 @@ const MyRequests = () => {
   if (loading) {
     return <div className="p-6">Loading your requests...</div>;
   }
+
+  const submitReview = async (requestId, rating) => {
+    try {
+      await api.post("/reviews", {
+        requestId,
+        rating,
+      });
+  
+      const res = await api.get("/requests/my");
+      setRequests(res.data.data);
+  
+      alert("Review submitted successfully");
+    } catch (err) {
+      alert(err.response?.data?.error || "Failed to submit review");
+    }
+  };    
 
   return (
     <div className="p-6 max-w-6xl mx-auto">
@@ -105,6 +122,45 @@ const MyRequests = () => {
                 >
                   {req.status.toUpperCase()}
                 </span>
+
+                {/* Review section (only after approval) */}
+                {req.status === "approved" && req.reviewed === false && (
+                  <div className="mt-3 border-t pt-3">
+                    <p className="text-sm text-gray-600 mb-1">
+                      Add a review after receiving food
+                    </p>
+
+                    <ReviewStars
+                      name={`review-${req._id}`}
+                      onSubmit={(rating) => submitReview(req._id, rating)}
+                    />
+                  </div>
+                )}
+
+                {/* Show user's review */}
+                {req.status === "approved" && req.reviewed && req.review?.rating && (
+                  <div className="mt-3 border-t pt-3">
+                    <p className="text-sm font-medium text-gray-700 mb-1">
+                      Your review
+                    </p>
+
+                    <div className="flex items-center gap-1">
+                      {[1, 2, 3, 4, 5].map((star) => (
+                        <span
+                          key={star}
+                          className={
+                            star <= req.review.rating
+                              ? "text-yellow-400 text-lg"
+                              : "text-gray-300 text-lg"
+                          }
+                        >
+                          ★
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
                 {/* Donor contact (only after approval) */}
                 {req.status === "approved" && req.food?.author?.phone && (
                   <div className="mt-3 text-sm text-green-700">

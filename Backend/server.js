@@ -13,6 +13,7 @@ mongoose.connect(process.env.MONGODB_URI || 'mongodb://localhost:27017/food-surp
     require('./models/user');
     require('./models/food');
     require('./models/request');
+    require('./models/review');
 
     // Start lifecycle automation ONLY after DB is ready
     startFoodLifecycleJob(); // To make edible food as compost when they are 3 days older.

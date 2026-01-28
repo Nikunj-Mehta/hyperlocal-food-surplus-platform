@@ -4,22 +4,18 @@ const foodSchema = new mongoose.Schema(
   {
     title: { type: String, required: true },
     description: String,
-
     quantity: { type: Number, required: true },
     quantityUnit: {
       type: String,
       enum: ['plates', 'kg', 'packets'],
       default: 'plates'
     },
-
     foodType: {
       type: String,
       enum: ['edible', 'compost'],
       required: true
     },
-
     images: [{ url: String, filename: String }],
-
     pickupWindow: {
         from: {
           type: Date,
@@ -34,15 +30,12 @@ const foodSchema = new mongoose.Schema(
           }
         }
       },
-
     status: {
       type: String,
       enum: ['available', 'requested', 'picked'],
       default: 'available'
     },
-
     address: { type: String, required: true },
-
     location: {
       type: {
         type: String,
@@ -54,7 +47,6 @@ const foodSchema = new mongoose.Schema(
         required: true
       }
     },
-
     author: {
       type: mongoose.Schema.Types.ObjectId,
       ref: 'User',
