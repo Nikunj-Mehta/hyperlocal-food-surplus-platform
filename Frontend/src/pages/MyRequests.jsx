@@ -1,8 +1,26 @@
 import { useEffect, useState } from "react";
+import {
+  Box,
+  Card,
+  CardContent,
+  Chip,
+  Container,
+  Divider,
+  Rating,
+  Stack,
+  Typography,
+} from "@mui/material";
+import { LocalPhoneOutlined, LocationOnOutlined } from "@mui/icons-material";
 import { useNavigate } from "react-router-dom";
 import api from "../api/axios";
 import { calculateDistance } from "../utils/distance";
 import ReviewStars from "../components/ReviewStars";
+
+const statusColor = {
+  pending: "warning",
+  approved: "success",
+  rejected: "error",
+};
 
 const MyRequests = () => {
   const navigate = useNavigate();
@@ -14,7 +32,7 @@ const MyRequests = () => {
       try {
         const res = await api.get("/requests/my");
         setRequests(res.data.data);
-      } catch (error) {
+      } catch {
         alert("Failed to load your requests");
       } finally {
         setLoading(false);
@@ -24,157 +42,184 @@ const MyRequests = () => {
     fetchMyRequests();
   }, []);
 
-  if (loading) {
-    return <div className="p-6">Loading your requests...</div>;
-  }
-
   const submitReview = async (requestId, rating) => {
     try {
-      await api.post("/reviews", {
-        requestId,
-        rating,
-      });
-  
+      await api.post("/reviews", { requestId, rating });
       const res = await api.get("/requests/my");
       setRequests(res.data.data);
-  
       alert("Review submitted successfully");
     } catch (err) {
       alert(err.response?.data?.error || "Failed to submit review");
     }
-  };    
+  };
+
+  if (loading) {
+    return (
+      <Box sx={{ p: 4 }}>
+        <Typography>Loading your requests...</Typography>
+      </Box>
+    );
+  }
 
   return (
-    <div className="p-6 max-w-6xl mx-auto">
-      <h1 className="text-2xl font-bold mb-6 text-green-600">
-        My Requests
-      </h1>
+    <Box component="main" sx={{ py: 5, minHeight: "calc(100vh - 72px)" }}>
+      <Container maxWidth="md">
+        <Typography variant="h1" sx={{ mb: 1 }}>
+          My requests
+        </Typography>
+        <Typography color="text.secondary" sx={{ mb: 4 }}>
+          Track pickup approvals and review completed donations.
+        </Typography>
 
-      {requests.length === 0 ? (
-        <p className="text-gray-500">You haven’t made any requests yet.</p>
-      ) : (
-        <div className="space-y-4">
-          {requests.map((req) => {
-            let distanceKm = null;
+        {requests.length === 0 ? (
+          <Card sx={{ p: 5, textAlign: "center", bgcolor: "surface.container" }}>
+            <Typography variant="h3" sx={{ mb: 1 }}>
+              You have not made any requests yet
+            </Typography>
+            <Typography color="text.secondary">
+              Food you request will show up here.
+            </Typography>
+          </Card>
+        ) : (
+          <Stack spacing={2.5}>
+            {requests.map((req) => {
+              let distanceKm = null;
 
-            if (
-              req.requesterLocation?.coordinates?.length === 2 &&
-              req.food?.location?.coordinates?.length === 2
-            ) {
-              distanceKm = calculateDistance(
-                req.requesterLocation.coordinates[1],
-                req.requesterLocation.coordinates[0],
-                req.food.location.coordinates[1],
-                req.food.location.coordinates[0]
-              );
-            }
-            return (
-            <div
-              key={req._id}
-              className="bg-white border rounded-lg p-4 shadow-sm flex gap-4"
-            >
-              {/* Food image */}
-              {req.food?.images?.length > 0 && (
-                <img
-                  src={req.food.images[0].url}
-                  alt={req.food.title}
-                  className="h-24 w-24 object-cover rounded cursor-pointer"
-                  onClick={() => navigate(`/foods/${req.food._id}`)}
-                />
-              )}
+              if (
+                req.requesterLocation?.coordinates?.length === 2 &&
+                req.food?.location?.coordinates?.length === 2
+              ) {
+                distanceKm = calculateDistance(
+                  req.requesterLocation.coordinates[1],
+                  req.requesterLocation.coordinates[0],
+                  req.food.location.coordinates[1],
+                  req.food.location.coordinates[0]
+                );
+              }
 
-              {/* Info */}
-              <div className="flex-1">
-                <h2
-                  className="font-semibold text-lg cursor-pointer hover:underline"
-                  onClick={() => navigate(`/foods/${req.food._id}`)}
-                >
-                  {req.food?.title}
-                </h2>
+              return (
+                <Card key={req._id}>
+                  <CardContent>
+                    <Stack direction={{ xs: "column", sm: "row" }} spacing={2.5}>
+                      {req.food?.images?.length > 0 && (
+                        <Box
+                          component="img"
+                          src={req.food.images[0].url}
+                          alt={req.food.title}
+                          onClick={() => navigate(`/foods/${req.food._id}`)}
+                          sx={{
+                            width: { xs: "100%", sm: 132 },
+                            height: 132,
+                            objectFit: "cover",
+                            borderRadius: 2,
+                            cursor: "pointer",
+                            transition:
+                              "transform 0.22s cubic-bezier(0.2, 0, 0, 1)",
+                            transformOrigin: "center",
+                            "&:hover": {
+                              transform: "scale(1.02)",
+                            },
+                          }}
+                        />
+                      )}
 
-                <p className="text-sm text-gray-600">
-                  Requested Quantity: {req.requestedQuantity}{" "}
-                  {req.food?.quantityUnit}
-                </p>
-
-                <p className="text-sm text-gray-600">
-                  Address: {req.food?.address}
-                </p>
-
-                {distanceKm && (
-                  <p className="text-sm text-gray-600 mt-1">
-                    Distance from food:{" "}
-                    <span className="font-medium">
-                      {distanceKm.toFixed(2)} km
-                    </span>
-                  </p>
-                )}
-
-                {/* Status badge */}
-                <span
-                  className={`inline-block mt-2 px-2 py-1 text-xs rounded ${
-                    req.status === "pending"
-                      ? "bg-yellow-100 text-yellow-700"
-                      : req.status === "approved"
-                      ? "bg-green-100 text-green-700"
-                      : "bg-red-100 text-red-700"
-                  }`}
-                >
-                  {req.status.toUpperCase()}
-                </span>
-
-                {/* Review section (only after approval) */}
-                {req.status === "approved" && req.reviewed === false && (
-                  <div className="mt-3 border-t pt-3">
-                    <p className="text-sm text-gray-600 mb-1">
-                      Add a review after receiving food
-                    </p>
-
-                    <ReviewStars
-                      name={`review-${req._id}`}
-                      onSubmit={(rating) => submitReview(req._id, rating)}
-                    />
-                  </div>
-                )}
-
-                {/* Show user's review */}
-                {req.status === "approved" && req.reviewed && req.review?.rating && (
-                  <div className="mt-3 border-t pt-3">
-                    <p className="text-sm font-medium text-gray-700 mb-1">
-                      Your review
-                    </p>
-
-                    <div className="flex items-center gap-1">
-                      {[1, 2, 3, 4, 5].map((star) => (
-                        <span
-                          key={star}
-                          className={
-                            star <= req.review.rating
-                              ? "text-yellow-400 text-lg"
-                              : "text-gray-300 text-lg"
-                          }
+                      <Stack spacing={1.25} sx={{ flex: 1 }}>
+                        <Stack
+                          direction="row"
+                          spacing={1}
+                          justifyContent="space-between"
+                          alignItems="flex-start"
                         >
-                          ★
-                        </span>
-                      ))}
-                    </div>
-                  </div>
-                )}
+                          <Typography
+                            variant="h3"
+                            sx={{
+                              fontSize: 22,
+                              cursor: "pointer",
+                              transition:
+                                "transform 0.22s cubic-bezier(0.2, 0, 0, 1)",
+                              transformOrigin: "left center",
+                              "&:hover": {
+                                transform: "scale(1.02)",
+                              },
+                            }}
+                            onClick={() => navigate(`/foods/${req.food._id}`)}
+                          >
+                            {req.food?.title}
+                          </Typography>
+                          <Chip
+                            size="small"
+                            label={req.status}
+                            color={statusColor[req.status] || "default"}
+                          />
+                        </Stack>
 
-                {/* Donor contact (only after approval) */}
-                {req.status === "approved" && req.food?.author?.phone && (
-                  <div className="mt-3 text-sm text-green-700">
-                    <p className="font-medium"> Contact <i>{req.food.author.name}</i> to receive the food </p>
-                    <p className="mt-1"> 📞 {req.food.author.phone}</p>
-                  </div>
-                )}
-              </div>
-            </div>
-          );
-          })}
-        </div>
-      )}
-    </div>
+                        <Typography variant="body2" color="text.secondary">
+                          Requested Quantity: {req.requestedQuantity}{" "}
+                          {req.food?.quantityUnit}
+                        </Typography>
+                        <Typography variant="body2" color="text.secondary">
+                          {req.food?.address}
+                        </Typography>
+
+                        {distanceKm && (
+                          <Stack direction="row" spacing={1} alignItems="center">
+                            <LocationOnOutlined sx={{ fontSize: 18, color: "tertiary.main" }} />
+                            <Typography variant="body2" color="text.secondary">
+                              {distanceKm.toFixed(2)} km from your location
+                            </Typography>
+                          </Stack>
+                        )}
+
+                        {req.status === "approved" && req.reviewed === false && (
+                          <>
+                            <Divider sx={{ my: 0.5 }} />
+                            <Typography variant="body2" color="text.secondary">
+                              Add a review after receiving food
+                            </Typography>
+                            <ReviewStars onSubmit={(rating) => submitReview(req._id, rating)} />
+                          </>
+                        )}
+
+                        {req.status === "approved" && req.reviewed && req.review?.rating && (
+                          <>
+                            <Divider sx={{ my: 0.5 }} />
+                            <Typography variant="body2" fontWeight={700}>
+                              Your review
+                            </Typography>
+                            <Rating value={req.review.rating} readOnly />
+                          </>
+                        )}
+
+                        {req.status === "approved" && req.food?.author?.phone && (
+                          <Stack
+                            spacing={0.5}
+                            sx={{
+                              mt: 1,
+                              p: 2,
+                              borderRadius: 2,
+                              bgcolor: "success.light",
+                              color: "success.dark",
+                            }}
+                          >
+                            <Typography variant="body2" fontWeight={700}>
+                              Contact {req.food.author.name} to receive the food
+                            </Typography>
+                            <Stack direction="row" spacing={1} alignItems="center">
+                              <LocalPhoneOutlined fontSize="small" />
+                              <Typography variant="body2">{req.food.author.phone}</Typography>
+                            </Stack>
+                          </Stack>
+                        )}
+                      </Stack>
+                    </Stack>
+                  </CardContent>
+                </Card>
+              );
+            })}
+          </Stack>
+        )}
+      </Container>
+    </Box>
   );
 };
 

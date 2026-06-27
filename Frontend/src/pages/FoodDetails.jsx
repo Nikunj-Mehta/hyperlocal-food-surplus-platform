@@ -1,58 +1,88 @@
 import { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { Button } from "@mui/material";
+import {
+  Box,
+  Button,
+  Card,
+  CardContent,
+  Chip,
+  Container,
+  Dialog,
+  DialogActions,
+  DialogContent,
+  DialogTitle,
+  Divider,
+  Grid,
+  Alert,
+  Stack,
+  TextField,
+  Typography,
+} from "@mui/material";
+import {
+  CheckCircleOutline,
+  CloseOutlined,
+  EditOutlined,
+  Inventory2Outlined,
+  LocationOnOutlined,
+  MyLocation,
+  SendOutlined,
+  Star,
+} from "@mui/icons-material";
 import api from "../api/axios";
 import { useAuth } from "../context/AuthContext";
 import { formatDate, timeAgo } from "../utils/time";
 import MapView from "../components/MapView";
 import { calculateDistance } from "../utils/distance";
 
+const statusColor = {
+  available: "success",
+  requested: "warning",
+  completed: "default",
+  pending: "warning",
+  approved: "success",
+  rejected: "error",
+};
+
 const FoodDetails = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   const { user } = useAuth();
-
   const [food, setFood] = useState(null);
   const [loading, setLoading] = useState(true);
-
   const [openRequestModal, setOpenRequestModal] = useState(false);
   const [requestQty, setRequestQty] = useState(1);
   const [submitting, setSubmitting] = useState(false);
+  const [locating, setLocating] = useState(false);
+  const [locationMessage, setLocationMessage] = useState("");
   const [lat, setLat] = useState("");
   const [lng, setLng] = useState("");
+  const [requests, setRequests] = useState([]);
+  const [hasRequested, setHasRequested] = useState(false);
 
-  const [requests, setRequests] = useState([]); // To get requests received on my food listing
-
-  const [hasRequested, setHasRequested] = useState(false); // To disable the request button when user has already sent request
-
-  // Checks if user has already made the request then disable the request button
   useEffect(() => {
-    if (user?.role === "receiver") {
+    if (user?.role === "receiver" || user?.role === "compost_receiver") {
       api.get("/requests/my").then((res) => {
-        const alreadyRequested = res.data.data.some(
-          (req) => req.food._id === id
-        );
+        const alreadyRequested = res.data.data.some((req) => req.food._id === id);
         setHasRequested(alreadyRequested);
       });
     }
   }, [id, user]);
-  
 
   useEffect(() => {
     if (user?.role === "donor") {
       api
         .get(`/foods/${id}/requests`)
         .then((res) => setRequests(res.data.requests))
-        .catch(() => {});
+        .catch(() => { });
     }
-  }, [id, user]);  
+  }, [id, user]);
 
   useEffect(() => {
     const fetchFood = async () => {
       try {
         const res = await api.get(`/foods/${id}`);
         setFood(res.data.data);
-      } catch (err) {
+      } catch {
         alert("Food not found");
         navigate("/");
       } finally {
@@ -63,304 +93,384 @@ const FoodDetails = () => {
     fetchFood();
   }, [id, navigate]);
 
-  if (loading) return <p className="p-6">Loading...</p>;
-  if (!food) return null;
+  const refreshRequests = async () => {
+    const res = await api.get(`/foods/${id}/requests`);
+    setRequests(res.data.requests);
+  };
 
-  const isOwner = user && food.author?._id === user._id;
+  const handleApprove = async (requestId) => {
+    await api.put(`/requests/${requestId}/approve`);
+    refreshRequests();
+  };
 
-  let distanceKm = null;
+  const handleReject = async (requestId) => {
+    await api.put(`/requests/${requestId}/reject`);
+    refreshRequests();
+  };
 
-  if (lat && lng && food?.location?.coordinates?.length === 2 ) {
-    distanceKm = calculateDistance(
-      Number(lat),
-      Number(lng),
-      food.location.coordinates[1],
-      food.location.coordinates[0]
+  const handleFetchLocation = () => {
+    if (!navigator.geolocation) {
+      setLocationMessage("Geolocation is not supported by this browser.");
+      return;
+    }
+
+    setLocating(true);
+    setLocationMessage("");
+
+    navigator.geolocation.getCurrentPosition(
+      ({ coords }) => {
+        setLat(coords.latitude.toFixed(6));
+        setLng(coords.longitude.toFixed(6));
+        setLocationMessage("Location captured successfully.");
+        setLocating(false);
+      },
+      (error) => {
+        setLocationMessage(
+          error.code === error.PERMISSION_DENIED
+            ? "Location permission was denied. Please allow location access and try again."
+            : "Could not fetch your location. Please try again."
+        );
+        setLocating(false);
+      },
+      {
+        enableHighAccuracy: true,
+        timeout: 10000,
+        maximumAge: 60000,
+      }
+    );
+  };
+
+  const closeRequestModal = () => {
+    setOpenRequestModal(false);
+    setLocationMessage("");
+  };
+
+  if (loading) {
+    return (
+      <Box sx={{ p: 4 }}>
+        <Typography>Loading...</Typography>
+      </Box>
     );
   }
 
+  if (!food) return null;
+
+  const isOwner = user && food.author?._id === user._id;
+  const foodCoords = food.location?.coordinates;
+  const hasFoodCoords = foodCoords?.length === 2;
+  const distanceKm =
+    lat && lng && hasFoodCoords
+      ? calculateDistance(
+        Number(lat),
+        Number(lng),
+        foodCoords[1],
+        foodCoords[0]
+      )
+      : null;
+
   return (
-    <>
-      <div className="max-w-5xl mx-auto p-6">
-        {/* Title */}
-        <h1 className="text-3xl font-bold mb-2">{food.title}</h1>
+    <Box component="main" sx={{ py: 5, minHeight: "calc(100vh - 72px)" }}>
+      <Container maxWidth="lg">
+        <Grid container spacing={3}>
+          <Grid size={{ xs: 12, md: 7 }}>
+            <Stack spacing={3}>
+              <Card sx={{ overflow: "hidden" }}>
+                {food.images?.length > 0 && (
+                  <Box
+                    component="img"
+                    src={food.images[0].url}
+                    alt={food.title}
+                    sx={{ width: "100%", height: { xs: 260, md: 420 }, objectFit: "cover" }}
+                  />
+                )}
+                {food.images?.length > 1 && (
+                  <Stack direction="row" spacing={1} sx={{ p: 1.5, overflowX: "auto" }}>
+                    {food.images.slice(1).map((img) => (
+                      <Box
+                        key={img.filename}
+                        component="img"
+                        src={img.url}
+                        alt={food.title}
+                        sx={{
+                          width: 88,
+                          height: 88,
+                          objectFit: "cover",
+                          borderRadius: 2,
+                          border: "1px solid",
+                          borderColor: "divider",
+                        }}
+                      />
+                    ))}
+                  </Stack>
+                )}
+              </Card>
 
-        <p className="text-sm text-gray-500 mb-2"> Added on {formatDate(food.createdAt)} • {timeAgo(food.createdAt)} </p>
-  
-        {/* Status */}
-        <span
-          className={`inline-block mb-4 px-3 py-1 text-sm rounded ${
-            food.status === "available"
-              ? "bg-green-100 text-green-700"
-              : food.status === "requested"
-              ? "bg-yellow-100 text-yellow-700"
-              : "bg-gray-200 text-gray-700"
-          }`}
-        >
-          {food.status.toUpperCase()}
-        </span>
-  
-        {/* Images */}
-        {food.images?.length > 0 && (
-          <div className="flex gap-3 overflow-x-auto mb-6">
-            {food.images.map((img) => (
-              <img
-                key={img.filename}
-                src={img.url}
-                alt="food"
-                className="h-32 w-32 object-cover rounded border"
-              />
-            ))}
-          </div>
-        )}
-  
-        {/* Details */}
-        <div className="space-y-2 text-gray-700">
-          <p>
-            <strong>Quantity:</strong> {food.quantity} {food.quantityUnit}
-          </p>
-          <p>
-            <strong>Food Type:</strong> {food.foodType}
-          </p>
-          <p>
-            <strong>Address:</strong> {food.address}
-          </p>
-          <p>
-            <strong>Donor:</strong> {food.author?.name}
-          </p>
+              <Card>
+                <CardContent>
+                  <Typography variant="h3" sx={{ mb: 2 }}>
+                    Pickup location
+                  </Typography>
+                  <MapView lat={foodCoords?.[1]} lng={foodCoords?.[0]} label={food.title} />
+                </CardContent>
+              </Card>
+            </Stack>
+          </Grid>
 
-          {food.author?.rating?.count > 0 && (
-            <div className="flex items-center gap-1 text-sm text-gray-600 mt-1">
-              <span className="text-yellow-500">
-                ⭐ {food.author.rating.average}
-              </span>
-              <span>
-                ({food.author.rating.count} reviews)
-              </span>
-            </div>
-          )}
-        </div>
+          <Grid size={{ xs: 12, md: 5 }}>
+            <Card sx={{ position: { md: "sticky" }, top: 96 }}>
+              <CardContent>
+                <Stack spacing={2.25}>
+                  <Stack direction="row" spacing={1} justifyContent="space-between">
+                    <Chip
+                      label={food.status}
+                      color={statusColor[food.status] || "default"}
+                    />
+                    <Typography variant="caption" color="text.secondary">
+                      {timeAgo(food.createdAt)}
+                    </Typography>
+                  </Stack>
 
-        {/* Map – Food + Requesters (Donor only) */}
-        <MapView
-          lat={food.location.coordinates[1]}
-          lng={food.location.coordinates[0]}
-          label={food.title}
-        />
+                  <Box>
+                    <Typography variant="h1" sx={{ mb: 1 }}>
+                      {food.title}
+                    </Typography>
+                    <Typography variant="body2" color="text.secondary">
+                      Added on {formatDate(food.createdAt)}
+                    </Typography>
+                  </Box>
 
-        {/* Actions */}
-        <div className="mt-6 flex gap-3">
-        {user?.role === "receiver" &&
-          food.status === "available" &&
-          !isOwner && (
-            <Button
-              variant="contained"
-              disabled={hasRequested}
-              className={`${
-                hasRequested
-                  ? "!bg-gray-400 cursor-not-allowed"
-                  : "!bg-green-600 hover:!bg-green-700"
-              }`}
-              onClick={() => {
-                if (!hasRequested) setOpenRequestModal(true);
-              }}
-            >
-              {hasRequested ? "Request Sent" : "Request Food"}
-            </Button>
-        )}
+                  <Divider />
 
-  
-          {isOwner && (
-            <Button
-              variant="outlined"
-              onClick={() => navigate(`/foods/${food._id}/edit`)}
-            >
-              Edit
-            </Button>
-          )}
-        </div>
-      </div>
+                  {food.description && (
+                    <Box>
+                      <Typography variant="body1" sx={{ whiteSpace: "pre-wrap" }}>
+                        {food.description}
+                      </Typography>
+                    </Box>
+                  )}
 
-      {/* Donor-only: Requests on this food */}
-      {user?.role === "donor" && requests.length > 0 && (
-        <div className="max-w-5xl mx-auto px-6 pb-6">
-          <h2 className="text-xl font-semibold mb-4">
-            Requests on this food
-          </h2>
+                  <Stack spacing={1.5}>
+                    <Stack direction="row" spacing={1.25} alignItems="center">
+                      <Inventory2Outlined color="primary" />
+                      <Typography>
+                        {food.quantity} {food.quantityUnit} · {food.foodType}
+                      </Typography>
+                    </Stack>
+                    <Stack direction="row" spacing={1.25} alignItems="flex-start">
+                      <LocationOnOutlined color="primary" />
+                      <Typography>{food.address}</Typography>
+                    </Stack>
+                  </Stack>
 
-          <div className="space-y-4">
-          {requests.map((req) => {
-              const foodCoords = food?.location?.coordinates;
-              const reqCoords = req.requesterLocation?.coordinates;
+                  <Box sx={{ p: 2, borderRadius: 2, bgcolor: "surface.containerLow" }}>
+                    <Typography variant="body2" color="text.secondary">
+                      Donor
+                    </Typography>
+                    <Typography fontWeight={700}>{food.author?.name}</Typography>
+                    {food.author?.rating?.count > 0 && (
+                      <Stack direction="row" spacing={0.75} alignItems="center" sx={{ mt: 0.5 }}>
+                        <Star sx={{ fontSize: 18, color: "warning.main" }} />
+                        <Typography variant="body2" color="text.secondary">
+                          {food.author.rating.average} ({food.author.rating.count} reviews)
+                        </Typography>
+                      </Stack>
+                    )}
+                  </Box>
 
-              const distanceKm =
-                foodCoords?.length === 2 && reqCoords?.length === 2
-                  ? calculateDistance(
+                  <Stack direction={{ xs: "column", sm: "row" }} spacing={1}>
+                    {(user?.role === "receiver" || user?.role === "compost_receiver") &&
+                      food.status === "available" &&
+                      !isOwner && (
+                        <Button
+                          variant="contained"
+                          startIcon={<SendOutlined />}
+                          disabled={hasRequested}
+                          onClick={() => {
+                            if (!hasRequested) setOpenRequestModal(true);
+                          }}
+                        >
+                          {hasRequested ? "Request Sent" : (food.foodType === "compost" ? "Request Compost" : "Request Food")}
+                        </Button>
+                      )}
+
+                    {isOwner && food.status !== "fulfilled" && (
+                      <Button
+                        variant="outlined"
+                        startIcon={<EditOutlined />}
+                        onClick={() => navigate(`/foods/${food._id}/edit`)}
+                      >
+                        Edit Listing
+                      </Button>
+                    )}
+                  </Stack>
+                </Stack>
+              </CardContent>
+            </Card>
+          </Grid>
+        </Grid>
+
+        {user?.role === "donor" && requests.length > 0 && (
+          <Box sx={{ mt: 4 }}>
+            <Typography variant="h2" sx={{ mb: 2 }}>
+              Requests on this food
+            </Typography>
+            <Stack spacing={2}>
+              {requests.map((req) => {
+                const reqCoords = req.requesterLocation?.coordinates;
+                const requestDistanceKm =
+                  foodCoords?.length === 2 && reqCoords?.length === 2
+                    ? calculateDistance(
                       foodCoords[1],
                       foodCoords[0],
                       reqCoords[1],
                       reqCoords[0]
                     ).toFixed(2)
-                  : null;
+                    : null;
 
-              return (
-                <div
-                  key={req._id}
-                  className="border rounded-lg p-4 bg-gray-50"
-                >
-                  <p className="text-sm">
-                    <strong>Requested Quantity:</strong>{" "}
-                    {req.requestedQuantity}
-                  </p>
+                return (
+                  <Card key={req._id}>
+                    <CardContent>
+                      <Stack spacing={1.5}>
+                        <Stack direction="row" spacing={1} justifyContent="space-between">
+                          <Box>
+                            <Typography fontWeight={700}>
+                              {req.requester?.name || "Receiver"}
+                            </Typography>
+                            <Typography variant="body2" color="text.secondary">
+                              {req.requester?.email || "Contact details unavailable"}
+                            </Typography>
+                          </Box>
+                          <Chip
+                            size="small"
+                            label={req.status}
+                            color={statusColor[req.status] || "default"}
+                          />
+                        </Stack>
+                        <Typography variant="body2" color="text.secondary">
+                          Requested Quantity: {req.requestedQuantity}
+                        </Typography>
+                        {requestDistanceKm && (
+                          <Typography variant="body2" color="text.secondary">
+                            Distance: {requestDistanceKm} km away
+                          </Typography>
+                        )}
+                        {req.status === "pending" && (
+                          <Stack direction="row" spacing={1}>
+                            <Button
+                              variant="contained"
+                              startIcon={<CheckCircleOutline />}
+                              onClick={() => handleApprove(req._id)}
+                            >
+                              Approve
+                            </Button>
+                            <Button
+                              variant="outlined"
+                              color="error"
+                              startIcon={<CloseOutlined />}
+                              onClick={() => handleReject(req._id)}
+                            >
+                              Reject
+                            </Button>
+                          </Stack>
+                        )}
+                      </Stack>
+                    </CardContent>
+                  </Card>
+                );
+              })}
+            </Stack>
+          </Box>
+        )}
+      </Container>
 
-                  <p className="text-sm">
-                    <strong>Requested By:</strong>{" "}
-                    {req.requester.name} ({req.requester.email})
-                  </p>
-
-                  {reqCoords?.length === 2 && (
-                    <p className="text-sm">
-                      <strong>Location:</strong>{" "}
-                      {reqCoords[1]}, {reqCoords[0]}
-                    </p>
-                  )}
-
-                  {distanceKm && (
-                    <p className="text-sm text-gray-700">
-                      <strong>Distance:</strong> {distanceKm} km away
-                    </p>
-                  )}
-
-                  <p className="text-sm mt-1">
-                    <strong>Status:</strong>{" "}
-                    {req.status.toUpperCase()}
-                  </p>
-
-                  {req.status === "pending" && (
-                    <div className="mt-3 flex gap-3">
-                      <button
-                        className="px-3 py-1 bg-green-600 text-white rounded hover:bg-green-700 text-sm"
-                        onClick={() =>
-                          api.put(`/requests/${req._id}/approve`)
-                            .then(() => window.location.reload())
-                        }
-                      >
-                        Approve
-                      </button>
-
-                      <button
-                        className="px-3 py-1 border border-red-500 text-red-500 rounded hover:bg-red-50 text-sm"
-                        onClick={() =>
-                          api.put(`/requests/${req._id}/reject`)
-                            .then(() => window.location.reload())
-                        }
-                      >
-                        Reject
-                      </button>
-                    </div>
-                  )}
-                </div>
-              );
-            })}
-          </div>
-        </div>
-      )}
-
-  
-      {/* Request Modal */}
-      {openRequestModal && (
-        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg p-6 w-full max-w-sm">
-            <h2 className="text-lg font-semibold mb-3">
-              Request {food.title}
-            </h2>
-  
-            <p className="text-sm text-gray-600 mb-2">
+      <Dialog
+        open={openRequestModal}
+        onClose={closeRequestModal}
+        fullWidth
+        maxWidth="xs"
+      >
+        <DialogTitle sx={{ fontWeight: 900, letterSpacing: 0 }}>
+          Request {food.title}
+        </DialogTitle>
+        <DialogContent>
+          <Stack spacing={2} sx={{ pt: 1 }}>
+            <Typography variant="body2" color="text.secondary">
               Available: {food.quantity} {food.quantityUnit}
-            </p>
-  
-            <input
+            </Typography>
+            <TextField
+              label="Quantity"
               type="number"
-              min="1"
-              max={food.quantity}
+              inputProps={{ min: 1, max: food.quantity }}
               value={requestQty}
               onChange={(e) => setRequestQty(e.target.value)}
-              className="w-full border rounded p-2 mb-4"
+              fullWidth
             />
-
-            <input
-              type="number"
-              placeholder="Latitude"
-              value={lat}
-              onChange={(e) => setLat(e.target.value)}
-              className="w-full border rounded p-2 mb-2"
-            />
-
-            <input
-              type="number"
-              placeholder="Longitude"
-              value={lng}
-              onChange={(e) => setLng(e.target.value)}
-              className="w-full border rounded p-2 mb-4"
-            />
-
-            {distanceKm && (
-              <p className="text-sm text-gray-600 mb-3">
-                📍This food is approximately{" "}
-                <span className="font-semibold">
-                  {distanceKm.toFixed(2)} km
-                </span>{" "}
-                away from you
-              </p>
+            <Button
+              variant={lat && lng ? "outlined" : "contained"}
+              startIcon={<MyLocation />}
+              onClick={handleFetchLocation}
+              disabled={locating}
+              fullWidth
+            >
+              {locating
+                ? "Fetching location..."
+                : lat && lng
+                  ? "Refresh My Location"
+                  : "Fetch My Location"}
+            </Button>
+            {locationMessage && (
+              <Alert
+                severity={
+                  locationMessage.startsWith("Location captured")
+                    ? "success"
+                    : "warning"
+                }
+              >
+                {locationMessage}
+              </Alert>
             )}
-  
-            <div className="flex justify-end gap-3">
-              <button
-                onClick={() => setOpenRequestModal(false)}
-                className="text-sm text-gray-600"
-              >
-                Cancel
-              </button>
-  
-              <button
-                disabled={submitting}
-                onClick={async () => {
-                  try {
-                    setSubmitting(true);
-                    if (!lat || !lng) {
-                      alert("Please enter both latitude and longitude");
-                      setSubmitting(false);
-                      return;
-                    }                    
-                    await api.post(`/foods/${food._id}/request`, {
-                      quantity: requestQty,
-                      location: {
-                        coordinates: [Number(lng), Number(lat)],
-                      },
-                    });
-                    setHasRequested(true);
-                    alert("Request sent successfully");
-                    setOpenRequestModal(false);
-                  } catch (err) {
-                    alert(
-                      err.response?.data?.error ||
-                        "Failed to send request"
-                    );
-                  } finally {
-                    setSubmitting(false);
-                  }
-                }}
-                className="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700 text-sm"
-              >
-                {submitting ? "Sending..." : "Send Request"}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-      
-    </>
-  );  
+            {distanceKm !== null && (
+              <Typography variant="body2" color="text.secondary">
+                This {food.foodType === "compost" ? "compost" : "food"} is approximately {distanceKm.toFixed(2)} km away from you.
+              </Typography>
+            )}
+          </Stack>
+        </DialogContent>
+        <DialogActions sx={{ px: 3, pb: 3 }}>
+          <Button onClick={closeRequestModal}>Cancel</Button>
+          <Button
+            variant="contained"
+            disabled={submitting || locating || !lat || !lng}
+            onClick={async () => {
+              try {
+                setSubmitting(true);
+                if (!lat || !lng) {
+                  setLocationMessage("Please fetch your location before sending the request.");
+                  setSubmitting(false);
+                  return;
+                }
+                await api.post(`/foods/${food._id}/request`, {
+                  quantity: requestQty,
+                  location: {
+                    coordinates: [Number(lng), Number(lat)],
+                  },
+                });
+                setHasRequested(true);
+                alert("Request sent successfully");
+                closeRequestModal();
+              } catch (err) {
+                alert(err.response?.data?.error || "Failed to send request");
+              } finally {
+                setSubmitting(false);
+              }
+            }}
+          >
+            {submitting ? "Sending..." : "Send Request"}
+          </Button>
+        </DialogActions>
+      </Dialog>
+    </Box>
+  );
 };
 
 export default FoodDetails;

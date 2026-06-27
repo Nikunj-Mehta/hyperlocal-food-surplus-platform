@@ -1,3 +1,40 @@
-@tailwind base;        /* resets + base styles */
-@tailwind components; /* reusable components (later) */
-@tailwind utilities;  /* ALL utility classes like flex, text-xl */
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  color: #261406;
+  background: #fff1d7;
+  font-family: "Google Sans", "Google Sans Text", "Product Sans", Arial,
+    sans-serif;
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  min-height: 100%;
+}
+
+body {
+  min-width: 320px;
+  min-height: 100vh;
+  margin: 0;
+  font-family: inherit;
+}
+
+button,
+input,
+textarea,
+select {
+  font: inherit;
+}
+
+img {
+  display: block;
+}

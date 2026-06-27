@@ -1,28 +1,36 @@
 import { useState } from "react";
+import { Button, IconButton, Stack, Tooltip } from "@mui/material";
+import { Star, StarBorder } from "@mui/icons-material";
 
 const ReviewStars = ({ onSubmit }) => {
   const [rating, setRating] = useState(0);
   const [hover, setHover] = useState(0);
 
   return (
-    <div>
-      <div className="flex gap-1 text-2xl">
-        {[1, 2, 3, 4, 5].map((value) => (
-          <i
-            key={value}
-            className={`bi ${
-              value <= (hover || rating)
-                ? "bi-star-fill text-yellow-400"
-                : "bi-star text-gray-400"
-            } cursor-pointer`}
-            onClick={() => setRating(value)}
-            onMouseEnter={() => setHover(value)}
-            onMouseLeave={() => setHover(0)}
-          />
-        ))}
-      </div>
+    <Stack spacing={1.5} alignItems="flex-start">
+      <Stack direction="row" spacing={0.25}>
+        {[1, 2, 3, 4, 5].map((value) => {
+          const active = value <= (hover || rating);
 
-      <button
+          return (
+            <Tooltip key={value} title={`${value} star${value > 1 ? "s" : ""}`}>
+              <IconButton
+                color={active ? "warning" : "default"}
+                onClick={() => setRating(value)}
+                onMouseEnter={() => setHover(value)}
+                onMouseLeave={() => setHover(0)}
+                size="small"
+              >
+                {active ? <Star /> : <StarBorder />}
+              </IconButton>
+            </Tooltip>
+          );
+        })}
+      </Stack>
+
+      <Button
+        variant="contained"
+        size="small"
         onClick={() => {
           if (rating === 0) {
             alert("Please select a rating");
@@ -30,11 +38,10 @@ const ReviewStars = ({ onSubmit }) => {
           }
           onSubmit(rating);
         }}
-        className="mt-2 px-3 py-1 bg-green-600 text-white rounded"
       >
         Submit Review
-      </button>
-    </div>
+      </Button>
+    </Stack>
   );
 };
 

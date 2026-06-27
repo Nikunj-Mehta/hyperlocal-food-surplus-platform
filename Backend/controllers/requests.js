@@ -17,8 +17,8 @@ const createRequest = async (req, res) => {
       return res.status(400).json({ error: 'Food not available' });
     }
 
-    if (req.user.role !== 'receiver') {
-      return res.status(403).json({ error: 'Only receivers can request food' });
+    if (req.user.role !== 'receiver' && req.user.role !== 'compost_receiver') {
+      return res.status(403).json({ error: 'Only receivers can request food/compost' });
     }
 
      // Prevent requesting own food
@@ -239,7 +239,7 @@ const approveRequest = async (req, res) => {
     }
 
     // Food already exhausted
-    if (food.quantity === 0 || food.status === "picked") {
+    if (food.quantity === 0 || food.status === "fulfilled") {
       return res.status(400).json({
         error: "Food is no longer available",
       });
@@ -264,9 +264,9 @@ const approveRequest = async (req, res) => {
     request.receiverSeen = false;
     request.donorSeen = true;
 
-    // If food exhausted → mark picked & auto-reject others
+    // If food exhausted → mark fulfilled & auto-reject others
     if (food.quantity === 0) {
-      food.status = "picked";
+      food.status = "fulfilled";
 
       await Request.updateMany(
         {
@@ -346,7 +346,7 @@ const donorNotificationCount = async (req, res) => {
 // Receiver notification count
 const receiverNotificationCount = async (req, res) => {
   try {
-    if (req.user.role !== "receiver") {
+    if (req.user.role !== "receiver" && req.user.role !== "compost_receiver") {
       return res.status(403).json({ error: "Only receivers allowed" });
     }
 

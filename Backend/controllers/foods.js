@@ -5,10 +5,13 @@ const Request = require('../models/request');
 // Get all foods
 const index = async (req, res) => {
   try {
+    const foodType = req.query.type === "compost" ? "compost" : "edible";
     const foods = await Food.find({
-      foodType: "edible",
-      status: { $ne: "picked" },
-    }).populate("author", "name email rating");
+      foodType: foodType,
+      status: { $ne: "fulfilled" },
+    })
+      .sort({ createdAt: -1 })
+      .populate("author", "name email rating");
 
     res.status(200).json({
       success: true,
@@ -110,6 +113,7 @@ const update = async (req, res) => {
 
     // Update basic fields
     food.title = req.body.title;
+    food.description = req.body.description;
     food.quantity = req.body.quantity;
     food.quantityUnit = req.body.quantityUnit;
     food.foodType = req.body.foodType;
@@ -227,7 +231,13 @@ const destroy = async (req, res) => {
 // Get foods created by logged-in user
 const myFoods = async (req, res) => {
   try {
-    const foods = await Food.find({ author: req.user._id });
+    const foods = await Food.find({ author: req.user._id }).sort({ createdAt: -1 });
+
+    foods.sort((a, b) => {
+      if (a.status === "available" && b.status !== "available") return -1;
+      if (a.status !== "available" && b.status === "available") return 1;
+      return 0;
+    });
 
     res.status(200).json({
       success: true,

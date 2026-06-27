@@ -7,6 +7,16 @@ const register = async (req, res) => {
   try {
     const { name, email, phone, password, role } = req.body;
 
+    // Validation
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!email || !emailRegex.test(email)) {
+      return res.status(400).json({ message: 'Please enter a valid email format' });
+    }
+
+    if (!phone || !/^\d{10}$/.test(phone)) {
+      return res.status(400).json({ message: 'Phone number must be exactly 10 digits' });
+    }
+
     // 1. Check if user already exists
     const userExists = await User.findOne({ email });
     if (userExists) {

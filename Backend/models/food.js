@@ -32,7 +32,7 @@ const foodSchema = new mongoose.Schema(
       },
     status: {
       type: String,
-      enum: ['available', 'requested', 'picked'],
+      enum: ['available', 'requested', 'fulfilled'],
       default: 'available'
     },
     address: { type: String, required: true },

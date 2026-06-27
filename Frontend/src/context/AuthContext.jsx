@@ -2,15 +2,15 @@ import { createContext, useContext, useEffect, useState } from "react";
 import api from "../api/axios";
 
 const AuthContext = createContext();
+const initialToken = localStorage.getItem("token");
 
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(Boolean(initialToken));
 
   // Load user from token on app start
   useEffect(() => {
-    const token = localStorage.getItem("token");
-    if (token) {
+    if (initialToken) {
       api
         .get("/users/me")
         .then((res) => {
@@ -21,8 +21,6 @@ export const AuthProvider = ({ children }) => {
           setUser(null);
         })
         .finally(() => setLoading(false));
-    } else {
-      setLoading(false);
     }
   }, []);
 
@@ -62,4 +60,5 @@ export const AuthProvider = ({ children }) => {
   );
 };
 
+// eslint-disable-next-line react-refresh/only-export-components
 export const useAuth = () => useContext(AuthContext);
