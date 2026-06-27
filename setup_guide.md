@@ -35,12 +35,12 @@ npm install
 3. Create an environment variables file. Create a file named `.env` in the `Backend` folder with the following keys. Fill in the values appropriately:
 ```env
 PORT=8080
-MONGO_URI=mongodb://localhost:27017/hyperlocal-food-surplus
-JWT_SECRET=Qk1Qb3h6b3h6b3h6b3h6b3h6b3h6b3h6b3h6b3h6b3h6b3h6b3h6b3h6b3h6b3g=
+MONGO_URI=<your_mongodb_uri>
+JWT_SECRET=<your_jwt_secret>
 JWT_EXPIRE=7d
-CLOUDINARY_CLOUD_NAME= dvlmotdjt
-CLOUDINARY_KEY= 628253562379461
-CLOUDINARY_SECRET= iVDAR5-6Zru7M39iPYYKfSgvp1o
+CLOUDINARY_CLOUD_NAME=<your_cloudinary_cloud_name>
+CLOUDINARY_KEY=<your_cloudinary_api_key>
+CLOUDINARY_SECRET=<your_cloudinary_api_secret>
 ```
 
 4. Start the backend server:
