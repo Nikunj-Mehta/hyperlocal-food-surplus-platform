@@ -21,7 +21,7 @@ const createRequest = async (req, res) => {
       return res.status(403).json({ error: 'Only receivers can request food/compost' });
     }
 
-     // Prevent requesting own food
+    // Prevent requesting own food
     if (food.author.toString() === req.user._id.toString()) {
       return res.status(400).json({ error: 'You cannot request your own food listing' });
     }
@@ -89,18 +89,20 @@ const myRequests = async (req, res) => {
       },
       { receiverSeen: true }
     );
-    
-    const requests = await Request.find({ requester: req.user._id }).populate({
-      path: "food",
-      populate: {
-        path: "author",
-        select: "name phone rating",
-      },
-    })
-    .populate({
-      path: "review",
-      select: "rating",
-    });
+
+    const requests = await Request.find({ requester: req.user._id })
+      .sort({ createdAt: -1 })
+      .populate({
+        path: "food",
+        populate: {
+          path: "author",
+          select: "name phone rating",
+        },
+      })
+      .populate({
+        path: "review",
+        select: "rating",
+      });
 
 
     // Hide donor phone unless approved
@@ -133,16 +135,20 @@ const getReceivedRequests = async (req, res) => {
       });
     }
 
+    // Find all foods authored by this donor
+    const userFoods = await Food.find({ author: req.user._id }).select("_id");
+    const userFoodIds = userFoods.map(f => f._id);
+
     // We must clear notifications when user opens dashboard.
     await Request.updateMany(
-      { donorSeen: false },
+      { food: { $in: userFoodIds }, donorSeen: false },
       { donorSeen: true }
     );
 
-    const requests = await Request.find()
+    const requests = await Request.find({ food: { $in: userFoodIds } })
+      .sort({ createdAt: -1 })
       .populate({
         path: "food",
-        match: { author: req.user._id },
         select: "title quantity quantityUnit images location status createdAt",
       })
       .populate({
@@ -264,22 +270,27 @@ const approveRequest = async (req, res) => {
     request.receiverSeen = false;
     request.donorSeen = true;
 
-    // If food exhausted → mark fulfilled & auto-reject others
+    // If food exhausted → mark fulfilled
     if (food.quantity === 0) {
       food.status = "fulfilled";
-
-      await Request.updateMany(
-        {
-          food: food._id,
-          status: "pending",
-        },
-        {
-          status: "rejected",
-          receiverSeen: false,
-        }
-      );
     } else {
       food.status = "available";
+    }
+
+    // Auto-reject any pending requests that ask for more than the new available food quantity
+    const pendingRequests = await Request.find({
+      food: food._id,
+      status: "pending",
+      _id: { $ne: request._id }
+    });
+
+    for (let pReq of pendingRequests) {
+      if (pReq.requestedQuantity > food.quantity) {
+        pReq.status = "rejected";
+        pReq.receiverSeen = false;
+        pReq.donorSeen = true;
+        await pReq.save();
+      }
     }
 
     request.reviewed = false;
@@ -297,7 +308,7 @@ const approveRequest = async (req, res) => {
     res.status(500).json({ error: error.message });
   }
 };
-  
+
 // REJECT REQUEST (donor)
 const rejectRequest = async (req, res) => {
   try {
@@ -329,12 +340,14 @@ const donorNotificationCount = async (req, res) => {
       return res.status(403).json({ error: "Only donors allowed" });
     }
 
+    // Find all foods authored by this donor
+    const userFoods = await Food.find({ author: req.user._id }).select("_id");
+    const userFoodIds = userFoods.map(f => f._id);
+
     const count = await Request.countDocuments({
+      food: { $in: userFoodIds },
       status: "pending",
       donorSeen: false
-    }).populate({
-      path: "food",
-      match: { author: req.user._id }
     });
 
     res.json({ count });
@@ -363,4 +376,4 @@ const receiverNotificationCount = async (req, res) => {
 };
 
 module.exports = { createRequest, myRequests, getReceivedRequests, approveRequest, rejectRequest, donorNotificationCount, receiverNotificationCount };
-  
+
