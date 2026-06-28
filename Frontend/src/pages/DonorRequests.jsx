@@ -1,14 +1,31 @@
 import { useEffect, useState } from "react";
+import {
+  Box,
+  Button,
+  Card,
+  CardContent,
+  Chip,
+  Container,
+  Divider,
+  Rating,
+  Stack,
+  Typography,
+} from "@mui/material";
+import { CheckCircleOutline, CloseOutlined, LocalPhoneOutlined } from "@mui/icons-material";
 import api from "../api/axios";
-import { Button } from "@mui/material";
 import { useNavigate } from "react-router-dom";
 import { timeAgo } from "../utils/time";
 import { calculateDistance } from "../utils/distance";
 
+const statusColor = {
+  pending: "warning",
+  approved: "success",
+  rejected: "error",
+};
+
 const DonorRequests = () => {
   const [requests, setRequests] = useState([]);
   const [loading, setLoading] = useState(true);
-
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -16,170 +33,223 @@ const DonorRequests = () => {
       try {
         const res = await api.get("/requests/received");
         setRequests(res.data.data);
-      } catch (err) {
+      } catch {
         alert("Failed to load requests");
       } finally {
         setLoading(false);
       }
     };
-    
+
     fetchRequests();
   }, []);
 
-  if (loading) return <p className="p-6">Loading...</p>;
+  const refresh = async () => {
+    const res = await api.get("/requests/received");
+    setRequests(res.data.data);
+  };
 
   const handleApprove = async (id) => {
     await api.put(`/requests/${id}/approve`);
-    window.location.reload();
+    refresh();
   };
-  
+
   const handleReject = async (id) => {
     await api.put(`/requests/${id}/reject`);
-    window.location.reload();
+    refresh();
   };
 
+  if (loading) {
+    return (
+      <Box sx={{ p: 4 }}>
+        <Typography>Loading...</Typography>
+      </Box>
+    );
+  }
+
   return (
-    <div className="max-w-6xl mx-auto p-6">
-      <h1 className="text-2xl font-bold mb-4">Requests on My Food</h1>
+    <Box component="main" sx={{ py: 5, minHeight: "calc(100vh - 72px)" }}>
+      <Container maxWidth="lg">
+        <Typography variant="h1" sx={{ mb: 1 }}>
+          Requests on my food
+        </Typography>
+        <Typography color="text.secondary" sx={{ mb: 4 }}>
+          Review receiver requests and coordinate approved pickups.
+        </Typography>
 
-      {requests.length === 0 ? (
-        <p className="text-gray-500">No requests yet.</p>
+        {requests.length === 0 ? (
+          <Card sx={{ p: 5, textAlign: "center", bgcolor: "surface.container" }}>
+            <Typography variant="h3" sx={{ mb: 1 }}>
+              No requests yet
+            </Typography>
+            <Typography color="text.secondary">
+              Receiver requests for your listings will appear here.
+            </Typography>
+          </Card>
         ) : (
-        <div className="space-y-6">
+          <Stack spacing={3}>
             {requests.map((item) => (
-            <div
-                key={item.food._id}
-                className="border rounded-lg p-4 bg-white shadow"
-            >
-                {/* FOOD INFO */}
-                <div className="flex gap-4 items-center mb-4 cursor-pointer" onClick={() => navigate(`/foods/${item.food._id}`)}>
-                {item.food.images?.length > 0 && (
-                    <img
-                    src={item.food.images[0].url}
-                    alt={item.food.title}
-                    className="h-24 w-24 object-cover rounded"
-                    />
-                )}
+              <Card key={item.food._id}>
+                <CardContent>
+                  <Stack spacing={2.5}>
+                    <Stack
+                      direction={{ xs: "column", sm: "row" }}
+                      spacing={2}
+                      alignItems={{ xs: "stretch", sm: "center" }}
+                      onClick={() => navigate(`/foods/${item.food._id}`)}
+                      sx={{
+                        cursor: "pointer",
+                        transition: "transform 0.22s cubic-bezier(0.2, 0, 0, 1)",
+                        transformOrigin: "center",
+                        "&:hover": {
+                          transform: "scale(1.01)",
+                        },
+                      }}
+                    >
+                      {item.food.images?.length > 0 && (
+                        <Box
+                          component="img"
+                          src={item.food.images[0].url}
+                          alt={item.food.title}
+                          sx={{
+                            width: { xs: "100%", sm: 112 },
+                            height: 112,
+                            objectFit: "cover",
+                            borderRadius: 2,
+                          }}
+                        />
+                      )}
+                      <Box sx={{ flex: 1 }}>
+                        <Typography variant="h3" sx={{ fontSize: 22 }}>
+                          {item.food.title}
+                        </Typography>
+                        <Typography variant="body2" color="text.secondary">
+                          Available: {item.food.quantity} {item.food.quantityUnit}
+                        </Typography>
+                        <Typography variant="caption" color="text.secondary">
+                          Added {timeAgo(item.food.createdAt)}
+                        </Typography>
+                      </Box>
+                      <Chip
+                        label={item.food.status}
+                        color={statusColor[item.food.status] || "default"}
+                      />
+                    </Stack>
 
-                <div>
-                    <h2 className="text-xl font-semibold">{item.food.title}</h2>
-                    <p className="text-sm text-gray-600">Available: {item.food.quantity} {item.food.quantityUnit}</p>
-                    <p className="text-sm text-gray-600">Status: {item.food.status.toUpperCase()}</p>
-                    <p className="text-xs text-gray-500"> Added {timeAgo(item.food.createdAt)} </p>
-                </div>
-                </div>
+                    <Divider />
 
-                {/* REQUESTS ON THIS FOOD */}
-                <div className="space-y-3">
-                  {item.requests.map((req) => {
-                    const foodCoords = item.food?.location?.coordinates;
-                    const reqCoords = req.requesterLocation?.coordinates;
+                    <Stack spacing={1.5}>
+                      {item.requests.map((req) => {
+                        const foodCoords = item.food?.location?.coordinates;
+                        const reqCoords = req.requesterLocation?.coordinates;
+                        const distanceKm =
+                          foodCoords?.length === 2 && reqCoords?.length === 2
+                            ? calculateDistance(
+                                foodCoords[1],
+                                foodCoords[0],
+                                reqCoords[1],
+                                reqCoords[0]
+                              ).toFixed(2)
+                            : null;
 
-                    const distanceKm =
-                      foodCoords?.length === 2 && reqCoords?.length === 2
-                        ? calculateDistance(
-                            foodCoords[1],
-                            foodCoords[0],
-                            reqCoords[1],
-                            reqCoords[0]
-                          ).toFixed(2)
-                        : null;
+                        return (
+                          <Box
+                            key={req._id}
+                            sx={{
+                              p: 2,
+                              borderRadius: 2,
+                              bgcolor: "surface.containerLow",
+                              border: "1px solid",
+                              borderColor: "divider",
+                            }}
+                          >
+                            <Stack spacing={1}>
+                              <Stack
+                                direction={{ xs: "column", sm: "row" }}
+                                spacing={1}
+                                justifyContent="space-between"
+                              >
+                                <Box>
+                                  <Typography fontWeight={700}>
+                                    {req.requester.name}
+                                  </Typography>
+                                  <Typography variant="body2" color="text.secondary">
+                                    {req.requester.email}
+                                  </Typography>
+                                </Box>
+                                <Chip
+                                  size="small"
+                                  label={req.status}
+                                  color={statusColor[req.status] || "default"}
+                                />
+                              </Stack>
 
-                    return (
-                      <div
-                        key={req._id}
-                        className="border rounded-md p-3 bg-gray-50"
-                      >
-                        <p className="text-sm">
-                          <strong>Requested Qty:</strong> {req.requestedQuantity}
-                        </p>
+                              <Typography variant="body2" color="text.secondary">
+                                Requested Qty: {req.requestedQuantity}
+                              </Typography>
+                              {distanceKm && (
+                                <Typography variant="body2" color="text.secondary">
+                                  Distance: {distanceKm} km away
+                                </Typography>
+                              )}
 
-                        <p className="text-sm">
-                          <strong>Requested By:</strong>{" "}
-                          {req.requester.name} ({req.requester.email})
-                        </p>
+                              {req.reviewed && req.review?.rating && (
+                                <Stack direction="row" spacing={1} alignItems="center">
+                                  <Typography variant="body2" color="text.secondary">
+                                    Receiver rating:
+                                  </Typography>
+                                  <Rating value={req.review.rating} readOnly size="small" />
+                                  <Typography variant="caption" color="text.secondary">
+                                    {req.review.rating}/5
+                                  </Typography>
+                                </Stack>
+                              )}
 
-                        {reqCoords?.length === 2 && (
-                          <p className="text-sm">
-                            <strong>Location:</strong>{" "}
-                            {reqCoords[1]}, {reqCoords[0]}
-                          </p>
-                        )}
-
-                        {distanceKm && (
-                          <p className="text-sm text-gray-700">
-                            <strong>Distance:</strong> {distanceKm} km away
-                          </p>
-                        )}
-
-                        <p className="text-sm mt-1">
-                          <strong>Status:</strong> {req.status.toUpperCase()}
-                        </p>
-
-                        {/* Rating received (only if reviewed) */}
-                        {req.reviewed && req.review?.rating && (
-                          <div className="mt-2 flex items-center gap-2 text-sm">
-                            <span className="text-gray-600">Receiver rated you:</span>
-
-                            <div className="flex">
-                              {[1, 2, 3, 4, 5].map((star) => (
-                                <span
-                                  key={star}
-                                  className={
-                                    star <= req.review.rating
-                                      ? "text-yellow-400 text-lg"
-                                      : "text-gray-300 text-lg"
-                                  }
+                              {req.status === "approved" && req.requester.phone && (
+                                <Stack
+                                  direction="row"
+                                  spacing={1}
+                                  alignItems="center"
+                                  sx={{ color: "success.dark" }}
                                 >
-                                  ★
-                                </span>
-                              ))}
-                            </div>
+                                  <LocalPhoneOutlined fontSize="small" />
+                                  <Typography variant="body2">
+                                    Contact {req.requester.name}: {req.requester.phone}
+                                  </Typography>
+                                </Stack>
+                              )}
 
-                            <span className="text-gray-500">
-                              ({req.review.rating}/5)
-                            </span>
-                          </div>
-                        )}
-
-                        {/* Receiver contact (only after approval) */}
-                        {req.status === "approved" && req.requester.phone && (
-                          <div className="mt-2 text-sm text-green-700">
-                            <p className="font-medium">
-                              Contact <i>{req.requester.name}</i> to donate the food
-                            </p>
-                            <p className="mt-1">📞 {req.requester.phone}</p>
-                          </div>
-                        )}
-
-                        {/* ACTION BUTTONS */}
-                        {req.status === "pending" && (
-                          <div className="mt-3 flex gap-3">
-                            <button
-                              onClick={() => handleApprove(req._id)}
-                              className="px-3 py-1 bg-green-600 text-white rounded hover:bg-green-700 text-sm"
-                            >
-                              Approve
-                            </button>
-
-                            <button
-                              onClick={() => handleReject(req._id)}
-                              className="px-3 py-1 border border-red-500 text-red-500 rounded hover:bg-red-50 text-sm"
-                            >
-                              Reject
-                            </button>
-                          </div>
-                        )}
-                      </div>
-                    );
-                  })}
-                </div>
-
-            </div>
+                              {req.status === "pending" && (
+                                <Stack direction="row" spacing={1} sx={{ pt: 1 }}>
+                                  <Button
+                                    variant="contained"
+                                    startIcon={<CheckCircleOutline />}
+                                    onClick={() => handleApprove(req._id)}
+                                  >
+                                    Approve
+                                  </Button>
+                                  <Button
+                                    variant="outlined"
+                                    color="error"
+                                    startIcon={<CloseOutlined />}
+                                    onClick={() => handleReject(req._id)}
+                                  >
+                                    Reject
+                                  </Button>
+                                </Stack>
+                              )}
+                            </Stack>
+                          </Box>
+                        );
+                      })}
+                    </Stack>
+                  </Stack>
+                </CardContent>
+              </Card>
             ))}
-        </div>
+          </Stack>
         )}
-    </div>
+      </Container>
+    </Box>
   );
 };
 

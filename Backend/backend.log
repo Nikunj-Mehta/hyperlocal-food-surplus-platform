@@ -1,0 +1,6 @@
+[dotenv@17.2.3] injecting env (7) from .env -- tip: 📡 add observability to secrets: https://dotenvx.com/ops
+Server is running on port 8080
+Connected to MongoDB
+[Food Lifecycle Job] Initialized
+[Food Lifecycle Job] Running...
+[Food Lifecycle Job] Converted 1 food items to compost

@@ -20,7 +20,7 @@ const userSchema = new mongoose.Schema({
   },
   role: {
     type: String,
-    enum: ['donor', 'receiver', 'admin'],
+    enum: ['donor', 'receiver', 'compost_receiver', 'admin'],
     default: 'donor',
   },
   rating: {

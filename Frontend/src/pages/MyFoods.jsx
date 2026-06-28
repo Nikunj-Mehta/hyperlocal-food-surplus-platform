@@ -1,12 +1,31 @@
 import { useEffect, useState } from "react";
+import {
+  Box,
+  Button,
+  Card,
+  CardActionArea,
+  CardContent,
+  CardMedia,
+  Chip,
+  Container,
+  Grid,
+  Stack,
+  Typography,
+} from "@mui/material";
+import { DeleteOutline, EditOutlined, Inventory2Outlined } from "@mui/icons-material";
 import api from "../api/axios";
 import { useNavigate } from "react-router-dom";
 import { timeAgo } from "../utils/time";
 
+const statusColor = {
+  available: "success",
+  requested: "warning",
+  completed: "default",
+};
+
 const MyFoods = () => {
   const [foods, setFoods] = useState([]);
   const [loading, setLoading] = useState(true);
-
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -14,7 +33,7 @@ const MyFoods = () => {
       try {
         const res = await api.get("/foods/my");
         setFoods(res.data.data);
-      } catch (err) {
+      } catch {
         alert("Failed to load your foods");
       } finally {
         setLoading(false);
@@ -35,84 +54,110 @@ const MyFoods = () => {
     }
   };
 
-  if (loading) return <p className="p-6">Loading...</p>;
+  if (loading) {
+    return (
+      <Box sx={{ p: 4 }}>
+        <Typography>Loading...</Typography>
+      </Box>
+    );
+  }
 
   return (
-    <div className="p-6 max-w-6xl mx-auto">
-      <h1 className="text-2xl font-bold mb-4">My Food Listings</h1>
+    <Box component="main" sx={{ py: 5, minHeight: "calc(100vh - 72px)" }}>
+      <Container maxWidth="lg">
+        <Typography variant="h1" sx={{ mb: 1 }}>
+          My Listings
+        </Typography>
+        <Typography color="text.secondary" sx={{ mb: 4 }}>
+          Manage what you have shared with nearby receivers.
+        </Typography>
 
-      {foods.length === 0 ? (
-        <p className="text-gray-500">No food listings yet.</p>
-      ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {foods.map((food) => (
-            <div
-            key={food._id}
-            className="border rounded-lg p-4 shadow-sm bg-white flex flex-col gap-3"
-          >
-            {/* Image */}
-            {food.images?.length > 0 && (
-              <img
-                src={food.images[0].url}
-                alt={food.title}
-                className="h-32 w-full object-cover rounded cursor-pointer"
-                onClick={() => navigate(`/foods/${food._id}`)}
-              />
-            )}
-          
-            {/* Title */}
-            <h2
-              className="font-semibold text-lg cursor-pointer hover:underline"
-              onClick={() => navigate(`/foods/${food._id}`)}
-            >
-              {food.title}
-            </h2>
-          
-            {/* Quantity */}
-            <p className="text-sm text-gray-600">
-              Quantity: {food.quantity} {food.quantityUnit}
-            </p>
-          
-            {/* Status badge */}
-            <span
-              className={`inline-block w-fit px-2 py-1 text-xs rounded ${
-                food.status === "available"
-                  ? "bg-green-100 text-green-700"
-                  : food.status === "requested"
-                  ? "bg-yellow-100 text-yellow-700"
-                  : "bg-gray-200 text-gray-700"
-              }`}
-            >
-              {food.status.toUpperCase()}
-            </span>
+        {foods.length === 0 ? (
+          <Card sx={{ p: 5, textAlign: "center", bgcolor: "surface.container" }}>
+            <Typography variant="h3" sx={{ mb: 1 }}>
+              No food listings yet
+            </Typography>
+            <Typography color="text.secondary">
+              Add your first listing when surplus food is ready to share.
+            </Typography>
+          </Card>
+        ) : (
+          <Grid container spacing={3}>
+            {foods.map((food) => (
+              <Grid key={food._id} size={{ xs: 12, sm: 6, lg: 4 }}>
+                <Card sx={{ height: "100%", overflow: "hidden" }}>
+                  <CardActionArea onClick={() => navigate(`/foods/${food._id}`)}>
+                    {food.images?.length > 0 ? (
+                      <CardMedia
+                        component="img"
+                        src={food.images[0].url}
+                        alt={food.title}
+                        sx={{ height: 168, objectFit: "cover" }}
+                      />
+                    ) : (
+                      <Box
+                        sx={{
+                          height: 168,
+                          display: "grid",
+                          placeItems: "center",
+                          bgcolor: "surface.containerHigh",
+                        }}
+                      >
+                        <Inventory2Outlined color="primary" />
+                      </Box>
+                    )}
+                  </CardActionArea>
 
-            <p className="text-xs text-gray-500"> Added {timeAgo(food.createdAt)} </p>
-          
-            {/* Actions */}
-            <div className="flex gap-4 mt-2">
-              {/* Edit button */}
-              <button
-                onClick={() => navigate(`/foods/${food._id}/edit`)}
-                className="text-blue-600 text-sm hover:underline"
-              >
-                Edit
-              </button>
-          
-              {/* Delete button only if available */}
-              {food.status === "available" && (
-                <button
-                  onClick={() => handleDelete(food._id)}
-                  className="text-red-600 text-sm hover:underline"
-                >
-                  Delete
-                </button>
-              )}
-            </div>
-          </div>          
-          ))}
-        </div>
-      )}
-    </div>
+                  <CardContent>
+                    <Stack spacing={1.5}>
+                      <Stack direction="row" spacing={1} justifyContent="space-between">
+                        <Typography variant="h3" sx={{ fontSize: 20 }}>
+                          {food.title}
+                        </Typography>
+                        <Chip
+                          size="small"
+                          label={food.status}
+                          color={statusColor[food.status] || "default"}
+                        />
+                      </Stack>
+
+                      <Typography variant="body2" color="text.secondary">
+                        Quantity: {food.quantity} {food.quantityUnit}
+                      </Typography>
+                      <Typography variant="caption" color="text.secondary">
+                        Added {timeAgo(food.createdAt)}
+                      </Typography>
+
+                      <Stack direction="row" spacing={1} sx={{ pt: 1 }}>
+                        {food.status !== "fulfilled" && (
+                          <Button
+                            variant="outlined"
+                            startIcon={<EditOutlined />}
+                            onClick={() => navigate(`/foods/${food._id}/edit`)}
+                          >
+                            Edit
+                          </Button>
+                        )}
+                        {food.status === "available" && (
+                          <Button
+                            variant="outlined"
+                            color="error"
+                            startIcon={<DeleteOutline />}
+                            onClick={() => handleDelete(food._id)}
+                          >
+                            Delete
+                          </Button>
+                        )}
+                      </Stack>
+                    </Stack>
+                  </CardContent>
+                </Card>
+              </Grid>
+            ))}
+          </Grid>
+        )}
+      </Container>
+    </Box>
   );
 };
 

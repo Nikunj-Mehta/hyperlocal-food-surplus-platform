@@ -1,6 +1,26 @@
 import { useEffect, useState } from "react";
+import {
+  Box,
+  Button,
+  Card,
+  CardActionArea,
+  CardContent,
+  CardMedia,
+  Chip,
+  Container,
+  Grid,
+  Skeleton,
+  Stack,
+  Typography,
+} from "@mui/material";
+import {
+  AccessTime,
+  AddCircleOutline,
+  Inventory2Outlined,
+  LocationOnOutlined,
+  Star,
+} from "@mui/icons-material";
 import api from "../api/axios";
-import { Button } from "@mui/material";
 import { useAuth } from "../context/AuthContext";
 import { useNavigate } from "react-router-dom";
 import { timeAgo } from "../utils/time";
@@ -9,15 +29,15 @@ const Foods = () => {
   const { user } = useAuth();
   const [foods, setFoods] = useState([]);
   const [loading, setLoading] = useState(true);
-
   const navigate = useNavigate();
 
   useEffect(() => {
     const fetchFoods = async () => {
       try {
-        const res = await api.get("/foods");
+        const typeParam = user?.role === "compost_receiver" ? "?type=compost" : "?type=edible";
+        const res = await api.get(`/foods${typeParam}`);
         setFoods(res.data.data);
-      } catch (error) {
+      } catch {
         alert("Failed to load food listings");
       } finally {
         setLoading(false);
@@ -27,65 +47,176 @@ const Foods = () => {
     fetchFoods();
   }, []);
 
-  if (loading) {
-    return <div className="p-6">Loading food listings...</div>;
-  }
-
   return (
-    <div className="p-6 bg-gray-50 min-h-screen">
-      <h1 className="text-2xl font-bold text-green-600 mb-6 text-center">
-        Available Food Listings
-      </h1>
+    <Box component="main" sx={{ minHeight: "calc(100vh - 72px)", py: 5 }}>
+      <Container maxWidth="lg">
+        <Stack
+          direction={{ xs: "column", md: "row" }}
+          spacing={2}
+          alignItems={{ xs: "stretch", md: "center" }}
+          justifyContent="space-between"
+          sx={{ mb: 4 }}
+        >
+          <Box>
+            <Typography variant="h1" sx={{ mb: 1 }}>
+              {user?.role === "compost_receiver" ? "Available compost nearby" : "Available food nearby"}
+            </Typography>
+            <Typography color="text.secondary">
+              {user?.role === "compost_receiver" 
+                ? "Browse fresh compost listings from donors in your area." 
+                : "Browse fresh surplus listings from donors in your area."}
+            </Typography>
+          </Box>
 
-      {foods.length === 0 ? (
-        <p className="text-center text-gray-500">
-          No food available right now
-        </p>
-      ) : (
-        <div className="grid gap-6 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
-          {foods.map((food) => (
-            <div
-              key={food._id}
-              className="bg-white rounded-lg shadow-md p-4 flex flex-col gap-3"
-            >
-              {food.images?.length > 0 && (
-                <img
-                  src={food.images[0].url}
-                  alt={food.title}
-                  className="h-40 w-full object-cover rounded cursor-pointer"
-                  onClick={() => navigate(`/foods/${food._id}`)}
-                />
-              )}
 
-              <h2
-                className="text-lg font-semibold cursor-pointer hover:underline"
-                onClick={() => navigate(`/foods/${food._id}`)}
-              >
-                {food.title}
-              </h2>
+        </Stack>
 
-              <p className="text-sm text-gray-600">
-                Quantity: {food.quantity} {food.quantityUnit}
-              </p>
+        {loading ? (
+          <Grid container spacing={3}>
+            {[1, 2, 3, 4, 5, 6].map((item) => (
+              <Grid key={item} size={{ xs: 12, sm: 6, lg: 4 }}>
+                <Card>
+                  <Skeleton variant="rectangular" height={188} />
+                  <CardContent>
+                    <Skeleton width="70%" />
+                    <Skeleton width="45%" />
+                    <Skeleton width="85%" />
+                  </CardContent>
+                </Card>
+              </Grid>
+            ))}
+          </Grid>
+        ) : foods.length === 0 ? (
+          <Card sx={{ p: 5, textAlign: "center", bgcolor: "surface.container" }}>
+            <Typography variant="h3" sx={{ mb: 1 }}>
+              {user?.role === "compost_receiver" ? "No compost available right now" : "No food available right now"}
+            </Typography>
+            <Typography color="text.secondary">
+              Check back soon for new donor listings.
+            </Typography>
+          </Card>
+        ) : (
+          <Grid container spacing={3}>
+            {foods.map((food) => (
+              <Grid key={food._id} size={{ xs: 12, sm: 6, lg: 4 }}>
+                <Card sx={{ height: "100%", overflow: "hidden" }}>
+                  <CardActionArea
+                    onClick={() => navigate(`/foods/${food._id}`)}
+                    sx={{
+                      height: "100%",
+                      display: "flex",
+                      flexDirection: "column",
+                      alignItems: "stretch",
+                    }}
+                  >
+                    {food.images?.length > 0 ? (
+                      <CardMedia
+                        component="img"
+                        image={food.images[0].url}
+                        alt={food.title}
+                        sx={{ height: 188, objectFit: "cover" }}
+                      />
+                    ) : (
+                      <Box
+                        sx={{
+                          height: 188,
+                          display: "grid",
+                          placeItems: "center",
+                          bgcolor: "surface.containerHigh",
+                          color: "text.secondary",
+                        }}
+                      >
+                        <Inventory2Outlined fontSize="large" />
+                      </Box>
+                    )}
 
-              <p className="text-sm text-gray-600">
-                Type: <span className="capitalize">{food.foodType}</span>
-              </p>
+                    <CardContent sx={{ flexGrow: 1, width: "100%" }}>
+                      <Stack spacing={1.25}>
+                        <Stack
+                          direction="row"
+                          spacing={1}
+                          justifyContent="space-between"
+                          alignItems="flex-start"
+                        >
+                          <Typography variant="h3" sx={{ fontSize: 20 }}>
+                            {food.title}
+                          </Typography>
+                          <Chip
+                            size="small"
+                            label={food.foodType}
+                            color={
+                              food.foodType === "edible"
+                                ? "primary"
+                                : "secondary"
+                            }
+                            variant="outlined"
+                          />
+                        </Stack>
 
-              <p className="text-sm text-gray-500">{food.address}</p>
+                        <Stack direction="row" spacing={1} alignItems="center">
+                          <Inventory2Outlined
+                            sx={{ fontSize: 18, color: "primary.main" }}
+                          />
+                          <Typography variant="body2" color="text.secondary">
+                            {food.quantity} {food.quantityUnit}
+                          </Typography>
+                        </Stack>
 
-              <p className="text-xs text-gray-500 mt-1"> Added {timeAgo(food.createdAt)} </p>
+                        <Stack direction="row" spacing={1} alignItems="center">
+                          <LocationOnOutlined
+                            sx={{ fontSize: 18, color: "tertiary.main" }}
+                          />
+                          <Typography
+                            variant="body2"
+                            color="text.secondary"
+                            noWrap
+                          >
+                            {food.address}
+                          </Typography>
+                        </Stack>
 
-              {food.author?.rating?.count > 0 && (
-                <p className="text-xs text-gray-500 mt-1">
-                  ⭐ {food.author.rating.average} · {food.author.rating.count} reviews
-                </p>
-              )}
-            </div>
-          ))}
-        </div>
-      )}
-    </div>
+                        <Stack
+                          direction="row"
+                          spacing={2}
+                          alignItems="center"
+                          sx={{ pt: 0.5 }}
+                        >
+                          <Stack direction="row" spacing={0.5} alignItems="center">
+                            <AccessTime
+                              sx={{ fontSize: 16, color: "text.secondary" }}
+                            />
+                            <Typography variant="caption" color="text.secondary">
+                              {timeAgo(food.createdAt)}
+                            </Typography>
+                          </Stack>
+
+                          {food.author?.rating?.count > 0 && (
+                            <Stack
+                              direction="row"
+                              spacing={0.5}
+                              alignItems="center"
+                            >
+                              <Star sx={{ fontSize: 16, color: "warning.main" }} />
+                              <Typography
+                                variant="caption"
+                                color="text.secondary"
+                              >
+                                {food.author.rating.average} ·{" "}
+                                {food.author.rating.count}
+                              </Typography>
+                            </Stack>
+                          )}
+                        </Stack>
+                      </Stack>
+                    </CardContent>
+                  </CardActionArea>
+                </Card>
+              </Grid>
+            ))}
+          </Grid>
+        )}
+      </Container>
+    </Box>
   );
 };
 

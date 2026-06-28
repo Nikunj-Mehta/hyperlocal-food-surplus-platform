@@ -21,7 +21,7 @@ const startFoodLifecycleJob = () => {
         {
           $set: {
             foodType: "compost",
-            status: "picked", // optional but logical
+            status: "fulfilled", // optional but logical
           },
         }
       );

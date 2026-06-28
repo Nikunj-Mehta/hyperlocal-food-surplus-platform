@@ -1,4 +1,5 @@
 // Main application file
+const path = require('path');
 const express = require('express');
 const foodRoutes = require('./routes/foods');
 const reviewRoutes = require('./routes/reviews');
@@ -11,6 +12,7 @@ app.use(express.json());
 
 // Middleware for URL-encoded data
 app.use(express.urlencoded({ extended: true }));
+app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
 // Enable CORS
 app.use((req, res, next) => {
